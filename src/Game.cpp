@@ -7,7 +7,7 @@ Game::Game()
     , mWasFlying(false)
 {
     mWindow.setFramerateLimit(60);
-    loadProgress(); // Загружаем монеты при старте
+    loadProgress();
 }
 
 void Game::run() {
@@ -62,26 +62,17 @@ void Game::update(sf::Time deltaTime) {
         if (!mRocket.isFlying()) {
             mQteManager.update(deltaTime);
         }
-        else {
-            // ЗДЕСЬ БУДЕТ ПРОВЕРКА СТОЛКНОВЕНИЙ!
-            // Если ракета летит, мы каждый кадр проверяем, не коснулась ли она птицы из списка mTargets
-            // Если коснулась -> mCoins += target->getReward();
-        }
 
         mRocket.update(deltaTime.asSeconds());
 
-        // Ракета приземлилась
         bool currentlyFlying = mRocket.isFlying();
         if (mWasFlying && !currentlyFlying) {
-            // Базовая награда за дистанцию (на бензин)
-            int distanceReward = static_cast<int>(mRocket.getDistance() / 10.0f);
+            int distanceReward = static_cast<int>(mRocket.getDistance() / 10.0f); // Используем геттер
             mCoins += distanceReward;
-
-            std::cout << "[Gra] Ladowanie! Otrzymujesz " << distanceReward << " monet za dystans. Stan konta: " << mCoins << std::endl;
-            saveProgress(); // Сохраняем все монеты (включая те, что выбьем из птиц)
+            std::cout << "[Gra] Ladowanie! Otrzymujesz " << distanceReward << " monet. Stan konta: " << mCoins << std::endl;
+            saveProgress();
         }
         mWasFlying = currentlyFlying;
-
         break;
     }
     case GameState::PAUSE: break;
@@ -97,6 +88,25 @@ void Game::render() {
     case GameState::PAUSE: bgColor = sf::Color(50, 30, 30);   break;
     }
     mWindow.clear(bgColor);
+
+    // ---ОТРИСОВКА ТРАЕКТОРИИ (HUD) ---
+    if (mCurrentState == GameState::PLAY && mQteManager.isActive()) {
+        sf::Vector2f startPos(100.0f, 650.0f); // Стартовая точка ракеты на экране
+
+        // Получаем точки параболы для текущего значения ползунка
+        std::vector<sf::Vector2f> points = mRocket.getTrajectoryPoints(mQteManager.getMultiplier(), startPos);
+
+        // Рисуем каждую точку как маленький белый кружок
+        sf::CircleShape dot(4.0f);
+        dot.setFillColor(sf::Color::White);
+        dot.setOrigin(2.0f, 2.0f); // Центрируем точку
+
+        for (const auto& pos : points) {
+            dot.setPosition(pos);
+            mWindow.draw(dot);
+        }
+    }
+
     mWindow.display();
 }
 
