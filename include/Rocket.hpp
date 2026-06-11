@@ -3,76 +3,61 @@
 #include <vector>
 #include <SFML/System/Vector2.hpp>
 
+// ѕереименовали, чтобы не было конфликта с Equipment.hpp напарника!
+struct RocketEngine { float powerMult; };
+struct RocketTire { float dragMult; };
+
 class Rocket {
 public:
-    Rocket()
-        : mVelocityX(0.0f), mVelocityY(0.0f), mDistance(0.0f), mAltitude(0.0f), mMaxDistance(0.0f), mIsFlying(false), mGravity(9.81f) {
+    Rocket() : mVelocityX(0.0f), mVelocityY(0.0f), mDistance(0.0f), mAltitude(0.0f),
+        mIsFlying(false), mGravity(9.81f) {
+        // Ќј„јЋ№Ќџ… ”–ќ¬≈Ќ№
+        mEngine = { 0.5f };
+        mTire = { 1.5f };
+    }
+
+    void upgrade(float enginePower, float tireDrag) {
+        mEngine.powerMult = enginePower;
+        mTire.dragMult = tireDrag;
     }
 
     void launch(float qteMultiplier) {
-        float power = 500.0f + (1500.0f * qteMultiplier);
-        mVelocityX = power * 0.7f;
-        mVelocityY = power * 0.7f;
+        float power = (800.0f + (2000.0f * qteMultiplier)) * mEngine.powerMult;
 
-        mDistance = 0.0f;
-        mAltitude = 0.0f;
-        mMaxDistance = 0.0f;
-        mIsFlying = true;
+        mVelocityX = power * 0.85f;
+        mVelocityY = power * 0.5f;
 
-        std::cout << "[Lot] Wystrzal! Sila poczatkowa: " << power << std::endl;
+        mDistance = 0.0f; mAltitude = 0.0f; mIsFlying = true;
     }
 
     void update(float dt) {
         if (!mIsFlying) return;
 
+        mVelocityX -= (mVelocityX * 0.5f * mTire.dragMult) * dt;
+        mVelocityY -= (mGravity * 100.0f) * dt;
+
         mDistance += mVelocityX * dt;
-        mVelocityY -= mGravity * 100.0f * dt;
         mAltitude += mVelocityY * dt;
 
-        if (mDistance > mMaxDistance) {
-            mMaxDistance = mDistance;
-        }
-
         if (mAltitude <= 0.0f) {
-            mAltitude = 0.0f;
-            mVelocityX = 0.0f;
-            mVelocityY = 0.0f;
-            mIsFlying = false;
-
-            std::cout << "[Lot] Ladowanie! Przeleciales: " << mMaxDistance << " m" << std::endl;
+            mAltitude = 0.0f; mIsFlying = false;
         }
     }
 
-    // --- Ќќ¬јя ‘”Ќ ÷»я: –асчет точек траектории дл€ отрисовки ---
     std::vector<sf::Vector2f> getTrajectoryPoints(float qteMultiplier, sf::Vector2f startPos) {
         std::vector<sf::Vector2f> points;
+        float power = (500.0f + (1500.0f * qteMultiplier)) * mEngine.powerMult;
+        float vx = power * 0.85f;
+        float vy = power * 0.5f;
+        float dist = 0.0f, alt = 0.0f, vY = vy, vX = vx;
 
-        // —читаем стартовую скорость точно так же, как при запуске
-        float power = 500.0f + (1500.0f * qteMultiplier);
-        float vx = power * 0.7f;
-        float vy = power * 0.7f;
-
-        float tempDistance = 0.0f;
-        float tempAltitude = 0.0f;
-        float tempVelocityY = vy;
-        float g = mGravity * 100.0f;
-
-        float simDt = 0.03f; // Ўаг симул€ции (чем меньше, тем плотнее точки)
-
-        // ѕросчитываем 60 шагов вперед
         for (int i = 0; i < 60; ++i) {
-            tempDistance += vx * simDt;
-            tempVelocityY -= g * simDt;
-            tempAltitude += tempVelocityY * simDt;
-
-            if (tempAltitude < 0.0f) break; // —имул€ци€ до земли
-
-            // ѕереводим физические координаты в экранные:
-            // X растет вправо, Y уменьшаетс€ вверх (в SFML 0 сверху экрана)
-            float screenX = startPos.x + tempDistance;
-            float screenY = startPos.y - tempAltitude;
-
-            points.push_back(sf::Vector2f(screenX, screenY));
+            vX -= (vX * 0.5f * mTire.dragMult) * 0.03f;
+            vY -= (mGravity * 100.0f) * 0.03f;
+            dist += vX * 0.03f;
+            alt += vY * 0.03f;
+            if (alt < 0.0f) break;
+            points.push_back(sf::Vector2f(startPos.x + dist, startPos.y - alt));
         }
         return points;
     }
@@ -82,9 +67,8 @@ public:
     float getAltitude() const { return mAltitude; }
 
 private:
-    float mVelocityX, mVelocityY;
-    float mDistance, mAltitude;
-    float mMaxDistance;
+    RocketEngine mEngine; // «аменили тип
+    RocketTire mTire;     // «аменили тип
+    float mVelocityX, mVelocityY, mDistance, mAltitude, mGravity;
     bool mIsFlying;
-    float mGravity;
 };

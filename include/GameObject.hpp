@@ -9,58 +9,86 @@ public:
 
     virtual void update(sf::Time deltaTime) = 0;
     virtual void draw(sf::RenderWindow& window) = 0;
+    virtual sf::FloatRect getBounds() const = 0; // НОВОЕ: для коллизий
 
     void setPosition(float x, float y) {
         position = sf::Vector2f(x, y);
-        sprite.setPosition(position);
+        updateShapePosition();
     }
     sf::Vector2f getPosition() const { return position; }
 
 protected:
-    sf::Sprite sprite;
     sf::Vector2f position;
+    virtual void updateShapePosition() = 0; // Внутреннее обновление графики
 };
 
 // --- ПРОМЕЖУТОЧНЫЙ КЛАСС: ЦЕЛЬ ---
 class Target : public GameObject {
 public:
-    Target(int reward) : coinReward(reward) {}
+    Target(int reward) : coinReward(reward), active(true), speed(0.0f) {}
 
     int getReward() const { return coinReward; }
 
+    // НОВОЕ: Управление состоянием и скоростью
+    bool isActive() const { return active; }
+    void setActive(bool state) { active = state; }
+    void setSpeed(float s) { speed = s; }
+    float getSpeed() const { return speed; }
+
 protected:
     int coinReward;
+    bool active;
+    float speed;
 };
 
-// --- КОНКРЕТНЫЕ ЦЕЛИ (НАСЛЕДНИКИ) ---
+// --- КОНКРЕТНЫЕ ЦЕЛИ ---
 
 class Bird : public Target {
 public:
-    Bird(int reward) : Target(reward) {
-        // Позже здесь загрузим текстуру птицы
+    // Птица дает 50 монет
+    Bird() : Target(50) {
+        shape.setRadius(15.0f);
+        shape.setFillColor(sf::Color::Red); // Птица - красный круг
+        shape.setOrigin(15.0f, 15.0f);
     }
 
     void update(sf::Time deltaTime) override {
-        // Логика из плана: полет по sinusoidzie (синусоиде)
-        // Напишем математику позже, когда добавим физику
+        position.x += speed * deltaTime.asSeconds();
+        updateShapePosition();
     }
 
     void draw(sf::RenderWindow& window) override {
-        window.draw(sprite);
+        if (active) window.draw(shape);
     }
+
+    sf::FloatRect getBounds() const override { return shape.getGlobalBounds(); }
+
+protected:
+    sf::CircleShape shape;
+    void updateShapePosition() override { shape.setPosition(position); }
 };
 
 class Drone : public Target {
 public:
-    Drone(int reward) : Target(reward) {
-        // Позже здесь загрузим текстуру дрона
+    // Дрон дает 150 монет!
+    Drone() : Target(150) {
+        shape.setSize(sf::Vector2f(30.0f, 30.0f));
+        shape.setFillColor(sf::Color::Blue); // Дрон - синий квадрат
+        shape.setOrigin(15.0f, 15.0f);
     }
 
     void update(sf::Time deltaTime) override {
-        // Логика из плана: jednostajny ruch (равномерное движение)
+        position.x += speed * deltaTime.asSeconds();
+        updateShapePosition();
     }
 
     void draw(sf::RenderWindow& window) override {
-        window.draw(sprite);
+        if (active) window.draw(shape);
     }
+
+    sf::FloatRect getBounds() const override { return shape.getGlobalBounds(); }
+
+protected:
+    sf::RectangleShape shape;
+    void updateShapePosition() override { shape.setPosition(position); }
 };
