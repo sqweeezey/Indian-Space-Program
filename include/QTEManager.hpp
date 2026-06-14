@@ -7,49 +7,49 @@ public:
         : mMultiplier(0.0f), mIsActive(false), mMovingUp(true), mSpeed(1.5f) {
     }
 
-    // Запуск ползунка
+    // Р—Р°РїСѓСЃРє РїРѕР»Р·СѓРЅРєР°
     void start() {
         mMultiplier = 0.0f;
         mIsActive = true;
         mMovingUp = true;
     }
-    
-    // Остановка ползунка и возврат результата
+
+    // РћСЃС‚Р°РЅРѕРІРєР° РїРѕР»Р·СѓРЅРєР° Рё РІРѕР·РІСЂР°С‚ СЂРµР·СѓР»СЊС‚Р°С‚Р°
     float stop() {
         mIsActive = false;
-        return mMultiplier; // Возвращает от 0.0 до 1.0
+        return mMultiplier; // Р’РѕР·РІСЂР°С‰Р°РµС‚ РѕС‚ 0.0 РґРѕ 1.0
     }
 
-    // Обновление логики (должно вызываться каждый кадр)
+    // РћР±РЅРѕРІР»РµРЅРёРµ Р»РѕРіРёРєРё (РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊСЃСЏ РєР°Р¶РґС‹Р№ РєР°РґСЂ)
     void update(sf::Time deltaTime) {
         if (!mIsActive) return;
 
-        // Вычисляем, насколько сдвинуть ползунок в этом кадре
+        // Р’С‹С‡РёСЃР»СЏРµРј, РЅР°СЃРєРѕР»СЊРєРѕ СЃРґРІРёРЅСѓС‚СЊ РїРѕР»Р·СѓРЅРѕРє РІ СЌС‚РѕРј РєР°РґСЂРµ
         float delta = mSpeed * deltaTime.asSeconds();
 
         if (mMovingUp) {
             mMultiplier += delta;
             if (mMultiplier >= 1.0f) {
                 mMultiplier = 1.0f;
-                mMovingUp = false; // Дошли до конца, меняем направление
+                mMovingUp = false; // Р”РѕС€Р»Рё РґРѕ РєРѕРЅС†Р°, РјРµРЅСЏРµРј РЅР°РїСЂР°РІР»РµРЅРёРµ
             }
         }
         else {
             mMultiplier -= delta;
             if (mMultiplier <= 0.0f) {
                 mMultiplier = 0.0f;
-                mMovingUp = true; // Дошли до начала, меняем направление
+                mMovingUp = true; // Р”РѕС€Р»Рё РґРѕ РЅР°С‡Р°Р»Р°, РјРµРЅСЏРµРј РЅР°РїСЂР°РІР»РµРЅРёРµ
             }
         }
     }
 
-    // Геттеры для отрисовки интерфейса в будущем
+    // Р“РµС‚С‚РµСЂС‹ РґР»СЏ РѕС‚СЂРёСЃРѕРІРєРё РёРЅС‚РµСЂС„РµР№СЃР° РІ Р±СѓРґСѓС‰РµРј
     float getMultiplier() const { return mMultiplier; }
     bool isActive() const { return mIsActive; }
 
 private:
-    float mMultiplier; // Текущее значение силы (0.0 - 1.0)
-    bool mIsActive;    // Работает ли ползунок сейчас
-    bool mMovingUp;    // Направление движения ползунка
-    float mSpeed;      // Скорость бегунка
+    float mMultiplier; // РўРµРєСѓС‰РµРµ Р·РЅР°С‡РµРЅРёРµ СЃРёР»С‹ (0.0 - 1.0)
+    bool mIsActive;    // Р Р°Р±РѕС‚Р°РµС‚ Р»Рё РїРѕР»Р·СѓРЅРѕРє СЃРµР№С‡Р°СЃ
+    bool mMovingUp;    // РќР°РїСЂР°РІР»РµРЅРёРµ РґРІРёР¶РµРЅРёСЏ РїРѕР»Р·СѓРЅРєР°
+    float mSpeed;      // РЎРєРѕСЂРѕСЃС‚СЊ Р±РµРіСѓРЅРєР°
 };

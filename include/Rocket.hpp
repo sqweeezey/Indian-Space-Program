@@ -3,7 +3,7 @@
 #include <vector>
 #include <SFML/System/Vector2.hpp>
 
-// Переименовали, чтобы не конфликтовало с Equipment.hpp
+// РџРµСЂРµРёРјРµРЅРѕРІР°Р»Рё, С‡С‚РѕР±С‹ РЅРµ РєРѕРЅС„Р»РёРєС‚РѕРІР°Р»Рѕ СЃ Equipment.hpp
 struct RocketEngine { float powerMult; };
 struct RocketTire { float dragMult; };
 
@@ -22,7 +22,7 @@ public:
     }
 
     void launch(float qteMultiplier) {
-        mLastQte = qteMultiplier; // Запоминаем силу для отрисовки идеальной линии!
+        mLastQte = qteMultiplier; // Р—Р°РїРѕРјРёРЅР°РµРј СЃРёР»Сѓ РґР»СЏ РѕС‚СЂРёСЃРѕРІРєРё РёРґРµР°Р»СЊРЅРѕР№ Р»РёРЅРёРё!
 
         float power = (500.0f + (1500.0f * qteMultiplier)) * mEngine.powerMult;
 
@@ -32,11 +32,11 @@ public:
         mDistance = 0.0f; mAltitude = 0.0f; mIsFlying = true;
     }
 
-    // dt передаем, но игнорируем, используя жесткое время (fixedDt)
+    // dt РїРµСЂРµРґР°РµРј, РЅРѕ РёРіРЅРѕСЂРёСЂСѓРµРј, РёСЃРїРѕР»СЊР·СѓСЏ Р¶РµСЃС‚РєРѕРµ РІСЂРµРјСЏ (fixedDt)
     void update(float /* dt */) {
         if (!mIsFlying) return;
 
-        // Фиксированный шаг времени (как 60 FPS), чтобы физика не плавала от лагов
+        // Р¤РёРєСЃРёСЂРѕРІР°РЅРЅС‹Р№ С€Р°Рі РІСЂРµРјРµРЅРё (РєР°Рє 60 FPS), С‡С‚РѕР±С‹ С„РёР·РёРєР° РЅРµ РїР»Р°РІР°Р»Р° РѕС‚ Р»Р°РіРѕРІ
         float fixedDt = 1.0f / 60.0f;
 
         mVelocityX -= (mVelocityX * 0.5f * mTire.dragMult) * fixedDt;
@@ -58,7 +58,7 @@ public:
         float vy = power * 0.5f;
         float dist = 0.0f, alt = 0.0f, vY = vy, vX = vx;
 
-        // Идеально совпадает с fixedDt из функции update
+        // РРґРµР°Р»СЊРЅРѕ СЃРѕРІРїР°РґР°РµС‚ СЃ fixedDt РёР· С„СѓРЅРєС†РёРё update
         float simDt = 1.0f / 60.0f;
 
         for (int i = 0; i < 150; ++i) {
@@ -79,7 +79,7 @@ public:
     bool isFlying() const { return mIsFlying; }
     float getDistance() const { return mDistance; }
     float getAltitude() const { return mAltitude; }
-    float getLastQte() const { return mLastQte; } // Геттер для силы
+    float getLastQte() const { return mLastQte; } // Р“РµС‚С‚РµСЂ РґР»СЏ СЃРёР»С‹
 
 private:
     RocketEngine mEngine;
