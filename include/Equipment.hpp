@@ -1,28 +1,55 @@
 #pragma once
 #include <string>
 
-class UpgradeSet {
+// --- БАЗОВЫЙ КЛАСС ---
+class Equipment {
 public:
-    UpgradeSet(std::string name, int price, bool isUnlocked, float speedBonus, float aeroBonus)
-        : mName(name)
-        , mPrice(price)
-        , mIsUnlocked(isUnlocked)
-        , mSpeedBonus(speedBonus)
-        , mAeroBonus(aeroBonus) {
+    Equipment(std::string name, int price, bool isUnlocked)
+        : name(name), price(price), isUnlocked(isUnlocked) {
     }
 
-    std::string getName() const { return mName; }
-    int getPrice() const { return mPrice; }
-    bool getIsUnlocked() const { return mIsUnlocked; }
-    void unlock() { mIsUnlocked = true; }
+    virtual ~Equipment() = default;
 
-    float getSpeedBonus() const { return mSpeedBonus; }
-    float getAeroBonus() const { return mAeroBonus; }
+    // Чистая виртуальная функция
+    virtual float getPowerMultiplier() const = 0;
+
+    std::string getName() const { return name; }
+    int getPrice() const { return price; }
+    bool getIsUnlocked() const { return isUnlocked; }
+    void unlock() { isUnlocked = true; }
+
+protected:
+    std::string name;
+    int price;
+    bool isUnlocked;
+};
+
+// --- НАСЛЕДНИКИ ---
+
+class Motor : public Equipment {
+public:
+    Motor(std::string name, int price, bool isUnlocked, float speedBonus)
+        : Equipment(name, price, isUnlocked), mSpeedBonus(speedBonus) {
+    }
+
+    float getPowerMultiplier() const override {
+        return mSpeedBonus;
+    }
 
 private:
-    std::string mName;
-    int mPrice;
-    bool mIsUnlocked;
     float mSpeedBonus;
+};
+
+class Tire : public Equipment {
+public:
+    Tire(std::string name, int price, bool isUnlocked, float aeroBonus)
+        : Equipment(name, price, isUnlocked), mAeroBonus(aeroBonus) {
+    }
+
+    float getPowerMultiplier() const override {
+        return mAeroBonus;
+    }
+
+private:
     float mAeroBonus;
 };
