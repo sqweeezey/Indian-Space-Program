@@ -16,13 +16,11 @@ Game::Game()
 {
     srand(static_cast<unsigned int>(time(0)));
     mWindow.setFramerateLimit(60);
-    loadProgress();
 
     if (!mFont.loadFromFile("VT323-Regular.ttf")) {
         std::cout << "[Error] Font missing!" << std::endl;
     }
 
-    // --- НАСТРОЙКА ИНТЕРФЕЙСА СЧЕТА ---
     mScoreBackground.setSize(sf::Vector2f(200.0f, 45.0f));
     mScoreBackground.setFillColor(sf::Color(35, 45, 56));
     mScoreBackground.setOutlineThickness(3.0f);
@@ -48,7 +46,6 @@ Game::Game()
         mBackgroundSprite.setScale(scaleX, scaleY);
     }
 
-    // --- НАСТРОЙКА ПЕРСОНАЖА ---
     if (!mCharacterTexture.loadFromFile("character_sheet.png")) {
         std::cout << "[Error] Could not load character_sheet.png!" << std::endl;
     }
@@ -68,12 +65,11 @@ Game::Game()
         mCharacterSprite.setScale(0.45f, 0.45f);
     }
 
-    // --- ИСПРАВЛЕННЫЕ НАЗВАНИЯ НАБОРОВ (ДЛЯ СИНХРОНИЗАЦИИ С ТЕРМИНАЛОМ) ---
-    mUpgrades.push_back(UpgradeSet("Tuc-Tuc Set", 0, true, 0.5f, 1.5f));
-    mUpgrades.push_back(UpgradeSet("Abdurahman Set", 150, false, 1.0f, 1.0f));
-    mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 350, false, 2.0f, 0.4f));
+    // --- ИСПРАВЛЕНА МОЩНОСТЬ 3-ГО ДВИГАТЕЛЯ (1.2f -> 0.85f) ---
+    mUpgrades.push_back(UpgradeSet("Tuc-Tuc Set", 0, true, 0.35f, 1.5f));
+    mUpgrades.push_back(UpgradeSet("Abdurahman Set", 150, false, 0.55f, 1.0f));
+    mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 350, false, 0.85f, 0.4f));
 
-    // --- НАСТРОЙКА ГРАФИКИ МАГАЗИНА ---
     if (!mShopBgTexture.loadFromFile("fon_mag.png")) {
         std::cout << "[Error] Could not load fon_mag.png!" << std::endl;
     }
@@ -89,27 +85,25 @@ Game::Game()
     }
     else {
         mBoardSprite.setTexture(mBoardTexture);
-        mBoardSprite.setOrigin(mBoardTexture.getSize().x / 2.0f, mBoardTexture.getSize().y / 2.0f);
+        mBoardSprite.setOrigin(static_cast<float>(mBoardTexture.getSize().x) / 2.0f, static_cast<float>(mBoardTexture.getSize().y) / 2.0f);
         mBoardSprite.setPosition(640.0f, 350.0f);
         mBoardSprite.setScale(0.85f, 0.85f);
     }
 
-    // Загружаем мини-превью для каждой из трех витрин
     for (int i = 0; i < 3; ++i) {
         std::string eFile = "engine" + std::to_string(i + 1) + ".png";
         std::string tFile = "tire" + std::to_string(i + 1) + ".png";
 
         if (mPreviewEngineTextures[i].loadFromFile(eFile)) {
             mPreviewEngineSprites[i].setTexture(mPreviewEngineTextures[i]);
-            mPreviewEngineSprites[i].setOrigin(mPreviewEngineTextures[i].getSize().x / 2.0f, mPreviewEngineTextures[i].getSize().y / 2.0f);
+            mPreviewEngineSprites[i].setOrigin(static_cast<float>(mPreviewEngineTextures[i].getSize().x) / 2.0f, static_cast<float>(mPreviewEngineTextures[i].getSize().y) / 2.0f);
         }
         if (mPreviewTireTextures[i].loadFromFile(tFile)) {
             mPreviewTireSprites[i].setTexture(mPreviewTireTextures[i]);
-            mPreviewTireSprites[i].setOrigin(mPreviewTireTextures[i].getSize().x / 2.0f, mPreviewTireTextures[i].getSize().y / 2.0f);
+            mPreviewTireSprites[i].setOrigin(static_cast<float>(mPreviewTireTextures[i].getSize().x) / 2.0f, static_cast<float>(mPreviewTireTextures[i].getSize().y) / 2.0f);
         }
     }
 
-    // Загрузка новых элементов интерфейса магазина
     if (mNewCoinBgTexture.loadFromFile("monetybg2.png")) {
         mNewCoinBgSprite.setTexture(mNewCoinBgTexture);
         mNewCoinBgSprite.setPosition(30.0f, 20.0f);
@@ -118,18 +112,17 @@ Game::Game()
     if (mPriceBgTexture.loadFromFile("pricebg.png")) {
         for (int i = 0; i < 3; ++i) {
             mPriceBgSprites[i].setTexture(mPriceBgTexture);
-            mPriceBgSprites[i].setOrigin(mPriceBgTexture.getSize().x / 2.0f, mPriceBgTexture.getSize().y / 2.0f);
+            mPriceBgSprites[i].setOrigin(static_cast<float>(mPriceBgTexture.getSize().x) / 2.0f, static_cast<float>(mPriceBgTexture.getSize().y) / 2.0f);
         }
     }
 
     if (mBuyKeyTexture.loadFromFile("buykey.png")) {
         for (int i = 0; i < 3; ++i) {
             mBuyKeySprites[i].setTexture(mBuyKeyTexture);
-            mBuyKeySprites[i].setOrigin(mBuyKeyTexture.getSize().x / 2.0f, mBuyKeyTexture.getSize().y / 2.0f);
+            mBuyKeySprites[i].setOrigin(static_cast<float>(mBuyKeyTexture.getSize().x) / 2.0f, static_cast<float>(mBuyKeyTexture.getSize().y) / 2.0f);
         }
     }
 
-    // --- НАСТРОЙКА ГЛАВНОГО МЕНЮ ---
     if (!mMenuBgTexture.loadFromFile("menubg.png")) {
         std::cout << "[Error] Could not load menubg.png!" << std::endl;
     }
@@ -157,6 +150,7 @@ Game::Game()
     mStreetBtnText.setFillColor(sf::Color::White);
     mStreetBtnText.setString("Street");
 
+    loadProgress();
     applyUpgrades();
 
     for (int i = 0; i < 3; ++i) {
@@ -166,17 +160,20 @@ Game::Game()
 }
 
 void Game::spawnTarget(int index) {
-    float randomY = 100.0f + static_cast<float>(rand() % 400);
+    float randomY;
     int chance = rand() % 100;
 
-    if (chance < 50) {
+    if (chance < 45) {
         mTargets[index] = std::make_unique<Bird>();
+        randomY = 150.0f + static_cast<float>(rand() % 200);
     }
-    else if (chance < 80) {
+    else if (chance < 75) {
         mTargets[index] = std::make_unique<Drone>();
+        randomY = 30.0f + static_cast<float>(rand() % 90);
     }
     else {
         mTargets[index] = std::make_unique<Cow>();
+        randomY = 50.0f + static_cast<float>(rand() % 550);
     }
 
     int side = rand() % 2;
@@ -203,7 +200,7 @@ void Game::applyUpgrades() {
     }
     else {
         mLauncherSprite.setTexture(mLauncherTexture, true);
-        mLauncherSprite.setOrigin(mLauncherTexture.getSize().x / 2.0f, mLauncherTexture.getSize().y / 2.0f);
+        mLauncherSprite.setOrigin(static_cast<float>(mLauncherTexture.getSize().x) / 2.0f, static_cast<float>(mLauncherTexture.getSize().y) / 2.0f);
 
         if (mCurrentUpgradeLevel == 0) {
             mLauncherSprite.setScale(0.45f, 0.45f);
@@ -225,7 +222,7 @@ void Game::applyUpgrades() {
     }
     else {
         mTireVisual.setTexture(mTireTexture, true);
-        mTireVisual.setOrigin(mTireTexture.getSize().x / 2.0f, mTireTexture.getSize().y / 2.0f);
+        mTireVisual.setOrigin(static_cast<float>(mTireTexture.getSize().x) / 2.0f, static_cast<float>(mTireTexture.getSize().y) / 2.0f);
 
         if (mCurrentUpgradeLevel == 0) {
             mTireVisual.setScale(0.18f, 0.18f);
@@ -265,51 +262,62 @@ void Game::processEvents() {
 
         if (event.type == sf::Event::KeyReleased) {
             if (event.key.code == sf::Keyboard::Space && mCurrentState == GameState::PLAY) {
-                if (mQteManager.isActive()) {
-                    float result = mQteManager.stop();
-                    mRocket.launch(result);
+                if (!mRocket.isFlying()) {
+                    if (!mQteManager.isActive()) {
+                        mQteManager.start();
+                    }
+                    else {
+                        bool readyToLaunch = mQteManager.pressSpace();
+                        if (readyToLaunch) {
+                            sf::Vector2f st(290.0f, 550.0f);
+                            if (mCurrentUpgradeLevel == 1) st = sf::Vector2f(340.0f, 510.0f);
+                            else if (mCurrentUpgradeLevel == 2) st = sf::Vector2f(305.0f, 575.0f);
+
+                            float groundY = 635.0f;
+                            float initialAlt = groundY - st.y;
+
+                            float finalPwr = mQteManager.getFinalPowerMult();
+
+                            // --- НАЧИСЛЕНИЕ МОНЕТ ЗА ПОПАДАНИЕ В ЗОНУ ---
+                            if (finalPwr == 1.0f) {
+                                mCoins += 10;
+                                std::cout << "[Game] Perfect Timing! +10 Coins" << std::endl;
+                            }
+                            else if (finalPwr == 0.6f) {
+                                mCoins += 5;
+                                std::cout << "[Game] Good Timing! +5 Coins" << std::endl;
+                            }
+
+                            mRocket.launch(finalPwr, mQteManager.getAngle(), initialAlt);
+                        }
+                    }
                 }
             }
         }
 
-        // --- ОБРАБОТКА КЛИКОВ МЫШКОЙ ---
         if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
             sf::Vector2i pixelPos = sf::Mouse::getPosition(mWindow);
             sf::Vector2f mousePos = mWindow.mapPixelToCoords(pixelPos);
 
-            // КЛИКИ В ГЛАВНОМ МЕНЮ
             if (mCurrentState == GameState::MENU) {
                 float menuBtnScale = 1.1f;
                 float menuBtnCenterX = 530.0f;
                 float workshopBtnY = 300.0f;
                 float streetBtnY = 400.0f;
 
-                float btnW = mBuyKeyTexture.getSize().x * menuBtnScale;
-                float btnH = mBuyKeyTexture.getSize().y * menuBtnScale;
+                float btnW = static_cast<float>(mBuyKeyTexture.getSize().x) * menuBtnScale;
+                float btnH = static_cast<float>(mBuyKeyTexture.getSize().y) * menuBtnScale;
 
-                sf::FloatRect workshopBounds(
-                    menuBtnCenterX - btnW / 2.0f,
-                    workshopBtnY - btnH / 2.0f + 25.0f,
-                    btnW, btnH
-                );
-
-                sf::FloatRect streetBounds(
-                    menuBtnCenterX - btnW / 2.0f,
-                    streetBtnY - btnH / 2.0f + 25.0f,
-                    btnW, btnH
-                );
+                sf::FloatRect workshopBounds(menuBtnCenterX, workshopBtnY, btnW, btnH);
+                sf::FloatRect streetBounds(menuBtnCenterX, streetBtnY, btnW, btnH);
 
                 if (workshopBounds.contains(mousePos.x, mousePos.y)) {
                     mCurrentState = GameState::SHOP;
-                    std::cout << "[Menu] Switching scene to: Workshop" << std::endl;
                 }
                 else if (streetBounds.contains(mousePos.x, mousePos.y)) {
                     mCurrentState = GameState::PLAY;
-                    std::cout << "[Menu] Switching scene to: Street" << std::endl;
                 }
             }
-
-            // КЛИКИ В МАГАЗИНЕ
             else if (mCurrentState == GameState::SHOP) {
                 sf::Vector2f buttonPositions[3] = {
                     sf::Vector2f(408.0f, 513.0f),
@@ -333,18 +341,12 @@ void Game::processEvents() {
                                 mUpgrades[i].unlock();
                                 mCurrentUpgradeLevel = i;
                                 applyUpgrades();
-                                std::cout << "[Shop] Purchased set: " << mUpgrades[i].getName() << std::endl;
-                            }
-                            else {
-                                std::cout << "[Shop] Not enough coins!" << std::endl;
                             }
                         }
                         else {
                             mCurrentUpgradeLevel = i;
                             applyUpgrades();
-                            std::cout << "[Shop] Equipped set level: " << i << " (" << mUpgrades[i].getName() << ")" << std::endl;
                         }
-
                         saveProgress();
                         break;
                     }
@@ -359,31 +361,32 @@ void Game::update(sf::Time deltaTime) {
 
     mScoreText.setString("COINS: " + std::to_string(mCoins));
 
-    if (mIsCelebrating) {
-        if (mAnimationClock.getElapsedTime().asSeconds() > mFrameDuration) {
-            mAnimationClock.restart();
-            mCharacterCurrentFrame++;
+    if (!mCharacterFrames.empty()) {
+        if (mIsCelebrating) {
+            if (mAnimationClock.getElapsedTime().asSeconds() > mFrameDuration) {
+                mAnimationClock.restart();
+                mCharacterCurrentFrame++;
 
-            if (mCharacterCurrentFrame >= static_cast<int>(mCharacterFrames.size())) {
-                mCharacterCurrentFrame = 0;
-                mIsCelebrating = false;
+                if (mCharacterCurrentFrame >= static_cast<int>(mCharacterFrames.size())) {
+                    mCharacterCurrentFrame = 0;
+                    mIsCelebrating = false;
+                }
+
+                mCharacterSprite.setTextureRect(mCharacterFrames[mCharacterCurrentFrame]);
+                mCharacterSprite.setOrigin(mCharacterFrames[mCharacterCurrentFrame].width / 2.0f,
+                    mCharacterFrames[mCharacterCurrentFrame].height / 2.0f);
             }
-
-            mCharacterSprite.setTextureRect(mCharacterFrames[mCharacterCurrentFrame]);
-            mCharacterSprite.setOrigin(mCharacterFrames[mCharacterCurrentFrame].width / 2.0f,
-                mCharacterFrames[mCharacterCurrentFrame].height / 2.0f);
         }
-    }
-    else {
-        mCharacterSprite.setTextureRect(mCharacterFrames[0]);
-        mCharacterSprite.setOrigin(mCharacterFrames[0].width / 2.0f, mCharacterFrames[0].height / 2.0f);
+        else {
+            mCharacterSprite.setTextureRect(mCharacterFrames[0]);
+            mCharacterSprite.setOrigin(mCharacterFrames[0].width / 2.0f, mCharacterFrames[0].height / 2.0f);
+        }
     }
 
     for (size_t i = 0; i < mTargets.size(); ++i) {
         if (!mTargets[i]->isActive()) continue;
 
         mTargets[i]->update(deltaTime);
-
         sf::Vector2f pos = mTargets[i]->getPosition();
         float spd = mTargets[i]->getSpeed();
 
@@ -395,42 +398,45 @@ void Game::update(sf::Time deltaTime) {
         }
     }
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && !mRocket.isFlying()) {
-        if (!mQteManager.isActive()) {
-            mQteManager.start();
-        }
-    }
-
     if (!mRocket.isFlying()) mQteManager.update(deltaTime);
 
     mRocket.update(deltaTime.asSeconds());
 
     if (mRocket.isFlying()) {
         sf::Vector2f startPos(290.0f, 550.0f);
-        if (mCurrentUpgradeLevel == 1) {
-            startPos = sf::Vector2f(340.0f, 510.0f);
-        }
-        else if (mCurrentUpgradeLevel == 2) {
-            startPos = sf::Vector2f(305.0f, 575.0f);
-        }
+        if (mCurrentUpgradeLevel == 1) startPos = sf::Vector2f(340.0f, 510.0f);
+        else if (mCurrentUpgradeLevel == 2) startPos = sf::Vector2f(305.0f, 575.0f);
 
-        mTireVisual.setPosition(startPos.x + mRocket.getDistance(), startPos.y - mRocket.getAltitude());
+        float groundY = 635.0f;
+
+        mTireVisual.setPosition(startPos.x + mRocket.getDistance(), groundY - mRocket.getAltitude());
         mTireVisual.rotate(360.0f * deltaTime.asSeconds());
 
         sf::FloatRect tireBox = mTireVisual.getGlobalBounds();
+
+        float shrinkX = tireBox.width * 0.3f;
+        float shrinkY = tireBox.height * 0.3f;
+        sf::FloatRect smallTireBox(
+            tireBox.left + shrinkX,
+            tireBox.top + shrinkY,
+            tireBox.width - shrinkX * 2.0f,
+            tireBox.height - shrinkY * 2.0f
+        );
+
         for (size_t i = 0; i < mTargets.size(); ++i) {
-            if (mTargets[i]->isActive() && tireBox.intersects(mTargets[i]->getBounds())) {
+            if (mTargets[i]->isActive() && smallTireBox.intersects(mTargets[i]->getBounds())) {
                 mTargets[i]->setActive(false);
                 mCoins += mTargets[i]->getReward();
 
                 if (mCoins < 0) mCoins = 0;
 
-                std::cout << "[Game] Hit! + " << mTargets[i]->getReward() << " coins! Balance: " << mCoins << std::endl;
-
                 if (mTargets[i]->getReward() > 0 && !mIsCelebrating && mCharacterCurrentFrame == 0) {
                     mIsCelebrating = true;
                     mCharacterCurrentFrame = mCelebrateStartFrame;
-                    mCharacterSprite.setTextureRect(mCharacterFrames[mCharacterCurrentFrame]);
+
+                    if (!mCharacterFrames.empty()) {
+                        mCharacterSprite.setTextureRect(mCharacterFrames[mCharacterCurrentFrame]);
+                    }
                     mAnimationClock.restart();
                 }
 
@@ -441,7 +447,7 @@ void Game::update(sf::Time deltaTime) {
 
     bool currentlyFlying = mRocket.isFlying();
     if (mWasFlying && !currentlyFlying) {
-        mCoins += static_cast<int>(mRocket.getDistance() / 10.0f);
+        // --- Убрано начисление монет за дистанцию ---
         saveProgress();
     }
     mWasFlying = currentlyFlying;
@@ -457,35 +463,19 @@ void Game::render() {
     }
     mWindow.clear(bgColor);
 
-    // --- РЕНДЕР ГЛАВНОГО МЕНЮ ---
     if (mCurrentState == GameState::MENU) {
         mWindow.draw(mMenuBgSprite);
 
-        // =========================================================================
-        // ТВОИ НАСТРОЙКИ КООРДИНАТ ГЛАВНОГО МЕНЮ
-        // =========================================================================
-        float titleX = 650.0f;
-        float titleY = 100.0f;
-        int   titleSize = 110;
+        float titleX = 650.0f; float titleY = 100.0f; int titleSize = 110;
+        float btnCenterX = 530.0f; float workshopY = 300.0f; float streetY = 400.0f;
+        float btnScale = 1.1f; int textBtnSize = 34;
+        float textOffsetX = 108.0f; float textOffsetY = 25.0f;
 
-        float btnCenterX = 530.0f;
-        float workshopY = 300.0f;
-        float streetY = 400.0f;
-        float btnScale = 1.1f;
-
-        int   textBtnSize = 34;
-
-        float textOffsetX = 108.0f;
-        float textOffsetY = 25.0f;
-        // =========================================================================
-
-        // Заголовок
         mMenuTitleText.setCharacterSize(titleSize);
         mMenuTitleText.setOrigin(mMenuTitleText.getLocalBounds().width / 2.0f, mMenuTitleText.getLocalBounds().height / 2.0f);
         mMenuTitleText.setPosition(titleX, titleY);
         mWindow.draw(mMenuTitleText);
 
-        // Кнопка Workshop
         mWorkshopBtnSprite.setPosition(btnCenterX, workshopY);
         mWorkshopBtnSprite.setScale(btnScale, btnScale);
         mWindow.draw(mWorkshopBtnSprite);
@@ -495,7 +485,6 @@ void Game::render() {
         mWorkshopBtnText.setPosition(btnCenterX + textOffsetX, workshopY + textOffsetY);
         mWindow.draw(mWorkshopBtnText);
 
-        // Кнопка Street
         mStreetBtnSprite.setPosition(btnCenterX, streetY);
         mStreetBtnSprite.setScale(btnScale, btnScale);
         mWindow.draw(mStreetBtnSprite);
@@ -505,28 +494,17 @@ void Game::render() {
         mStreetBtnText.setPosition(btnCenterX + textOffsetX, streetY + textOffsetY);
         mWindow.draw(mStreetBtnText);
     }
-
-    // --- РЕНДЕР МАГАЗИНА (ВКЛАДКА 2) ---
     else if (mCurrentState == GameState::SHOP) {
         mWindow.draw(mShopBgSprite);
 
-        mBoardSprite.setOrigin(mBoardTexture.getSize().x / 2.0f, mBoardTexture.getSize().y / 2.0f);
+        mBoardSprite.setOrigin(static_cast<float>(mBoardTexture.getSize().x) / 2.0f, static_cast<float>(mBoardTexture.getSize().y) / 2.0f);
         mBoardSprite.setPosition(640.0f, 350.0f);
-
-        float boardScaleX = 0.42f;
-        float boardScaleY = 0.35f;
-
-        mBoardSprite.setScale(boardScaleX, boardScaleY);
+        mBoardSprite.setScale(0.42f, 0.35f);
         mWindow.draw(mBoardSprite);
 
         struct AbsoluteShelfConfig {
-            int engIdx, tireIdx;
-            float engScale, tireScale;
-            float engX, engY;
-            float tireX, tireY;
-            float priceX, priceY;
-            float btnX, btnY;
-            std::string setName;
+            int engIdx, tireIdx; float engScale, tireScale; float engX, engY;
+            float tireX, tireY; float priceX, priceY; float btnX, btnY; std::string setName;
         };
 
         AbsoluteShelfConfig shelves[3] = {
@@ -534,8 +512,6 @@ void Game::render() {
             { 1, 1, 0.16f, 0.04f, 630.0f, 325.0f, 680.0f, 290.0f, 640.0f, 462.0f, 640.0f, 513.0f, "Abdurahman Set" },
             { 2, 2, 0.16f, 0.3f, 860.0f, 335.0f, 915.0f, 321.0f, 872.0f, 462.0f, 872.0f, 513.0f, "Jugaad Mad Set" }
         };
-
-        float setsTitleHeight = 220.0f;
 
         sf::Text uiText;
         uiText.setFont(mFont);
@@ -560,7 +536,7 @@ void Game::render() {
             headerText.setFillColor(sf::Color(45, 40, 35));
             headerText.setString(cfg.setName);
             headerText.setOrigin(headerText.getLocalBounds().width / 2.0f, headerText.getLocalBounds().height / 2.0f);
-            headerText.setPosition(cfg.priceX, setsTitleHeight);
+            headerText.setPosition(cfg.priceX, 220.0f);
             mWindow.draw(headerText);
 
             mPriceBgSprites[i].setPosition(cfg.priceX, cfg.priceY);
@@ -581,15 +557,9 @@ void Game::render() {
             mBuyKeySprites[i].setScale(0.55f, 0.55f);
             mWindow.draw(mBuyKeySprites[i]);
 
-            if (!mUpgrades[i].getIsUnlocked()) {
-                uiText.setString("Purchase");
-            }
-            else if (mCurrentUpgradeLevel == i) {
-                uiText.setString("Equipped");
-            }
-            else {
-                uiText.setString("Equip");
-            }
+            if (!mUpgrades[i].getIsUnlocked()) uiText.setString("Purchase");
+            else if (mCurrentUpgradeLevel == i) uiText.setString("Equipped");
+            else uiText.setString("Equip");
 
             uiText.setOrigin(uiText.getLocalBounds().left + uiText.getLocalBounds().width / 2.0f,
                 uiText.getLocalBounds().top + uiText.getLocalBounds().height / 2.0f);
@@ -632,8 +602,6 @@ void Game::render() {
         tipText.setString("Press [3] to go out to the Street");
         mWindow.draw(tipText);
     }
-
-    // --- РЕНДЕР ИГРЫ (ВКЛАДКА 3 - STREET) ---
     else if (mCurrentState == GameState::PLAY) {
         mWindow.draw(mBackgroundSprite);
         mWindow.draw(mCharacterSprite);
@@ -643,21 +611,19 @@ void Game::render() {
             target->draw(mWindow);
         }
 
-        if (mQteManager.isActive() || mRocket.isFlying()) {
-            sf::Vector2f startPos(290.0f, 550.0f);
-            if (mCurrentUpgradeLevel == 1) {
-                startPos = sf::Vector2f(340.0f, 510.0f);
-            }
-            else if (mCurrentUpgradeLevel == 2) {
-                startPos = sf::Vector2f(305.0f, 575.0f);
-            }
+        sf::Vector2f startPos(290.0f, 550.0f);
+        if (mCurrentUpgradeLevel == 1) startPos = sf::Vector2f(340.0f, 510.0f);
+        else if (mCurrentUpgradeLevel == 2) startPos = sf::Vector2f(305.0f, 575.0f);
 
-            float currentMult = mRocket.isFlying() ? mRocket.getLastQte() : mQteManager.getMultiplier();
+        if (mRocket.isFlying() || mQteManager.getState() == QTEState::ANGLE_SELECT) {
+            float pwr = mRocket.isFlying() ? mRocket.getLastPowerMult() : mQteManager.getFinalPowerMult();
+            float ang = mRocket.isFlying() ? mRocket.getLastAngle() : mQteManager.getAngle();
 
-            auto points = mRocket.getTrajectoryPoints(currentMult, startPos);
+            auto points = mRocket.getTrajectoryPoints(pwr, ang, startPos);
             for (const auto& pos : points) {
                 sf::CircleShape dot(3.0f);
                 dot.setOrigin(3.0f, 3.0f);
+                dot.setFillColor(sf::Color(255, 255, 255, 180));
                 dot.setPosition(pos);
                 mWindow.draw(dot);
             }
@@ -667,21 +633,12 @@ void Game::render() {
             mWindow.draw(mTireVisual);
         }
         else {
-            if (mCurrentUpgradeLevel == 0) {
-                mTireVisual.setPosition(290.0f, 550.0f);
-            }
-            else if (mCurrentUpgradeLevel == 1) {
-                mTireVisual.setPosition(340.0f, 510.0f);
-            }
-            else if (mCurrentUpgradeLevel == 2) {
-                mTireVisual.setPosition(305.0f, 575.0f);
-            }
-            else {
-                mTireVisual.setPosition(275.0f, 560.0f);
-            }
+            mTireVisual.setPosition(startPos);
 
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
-                mTireVisual.rotate(1200.0f * (1.0f / 60.0f));
+            // --- КРУТИМ КОЛЕСО НА ЭТАПЕ ВЫБОРА УГЛА ---
+            if (mQteManager.getState() == QTEState::ANGLE_SELECT) {
+                float spinSpeed = 800.0f * mQteManager.getFinalPowerMult(); // Чем точнее попал, тем быстрее жужжит
+                mTireVisual.rotate(spinSpeed * (1.0f / 60.0f));
             }
             else {
                 mTireVisual.setRotation(0.0f);
@@ -689,10 +646,38 @@ void Game::render() {
             mWindow.draw(mTireVisual);
         }
 
-        // --- ТВОЙ НОВЫЙ ИНТЕРФЕЙС КОИНОВ (monetybg1.png) НА СЦЕНЕ ИГРЫ ---
-        // Используем mNewCoinBgTexture, так как она уже загружена, но подгружаем monetybg1.png для 3 экрана.
-        // Чтобы не менять заголовочный файл, мы временно переиспользуем mPriceBgTexture для проверки загрузки
-        // или просто безопасно нарисуем его, привязав к левому верхнему углу поближе (X=20, Y=20)
+        if (mQteManager.isActive()) {
+            float barW = 400.0f;
+            float barH = 30.0f;
+            float barX = 640.0f - barW / 2.0f;
+            float barY = 620.0f;
+
+            sf::RectangleShape bg(sf::Vector2f(barW, barH));
+            bg.setPosition(barX, barY);
+            bg.setFillColor(sf::Color(200, 50, 50));
+            bg.setOutlineThickness(2.0f);
+            bg.setOutlineColor(sf::Color::Black);
+            mWindow.draw(bg);
+
+            sf::RectangleShape yellowZone(sf::Vector2f(barW * 0.6f, barH));
+            yellowZone.setPosition(barX + barW * 0.2f, barY);
+            yellowZone.setFillColor(sf::Color(200, 200, 50));
+            mWindow.draw(yellowZone);
+
+            sf::RectangleShape greenZone(sf::Vector2f(barW * 0.2f, barH));
+            greenZone.setPosition(barX + barW * 0.4f, barY);
+            greenZone.setFillColor(sf::Color(50, 200, 50));
+            mWindow.draw(greenZone);
+
+            float indicator = mQteManager.getPowerIndicator();
+            sf::RectangleShape cursor(sf::Vector2f(6.0f, barH + 10.0f));
+            cursor.setOrigin(3.0f, 5.0f);
+            cursor.setPosition(barX + barW * indicator, barY);
+            cursor.setFillColor(sf::Color::White);
+            cursor.setOutlineThickness(1.0f);
+            cursor.setOutlineColor(sf::Color::Black);
+            mWindow.draw(cursor);
+        }
 
         static sf::Texture playCoinTexture;
         static bool isPlayCoinLoaded = false;
@@ -704,28 +689,34 @@ void Game::render() {
 
         if (isPlayCoinLoaded) {
             sf::Sprite playCoinSprite(playCoinTexture);
-            // Ставим поближе к углу экрана и масштабируем аккуратно
-            playCoinSprite.setPosition(20.0f, 20.0f);
-            playCoinSprite.setScale(0.07f, 0.07f);
+
+            float coinBgScale = 0.05f;
+            float coinBgX = 15.0f;
+            float coinBgY = 15.0f;
+
+            float textInBgOffsetX = 0.0f;
+            float textInBgOffsetY = -3.0f;
+
+            playCoinSprite.setPosition(coinBgX, coinBgY);
+            playCoinSprite.setScale(coinBgScale, coinBgScale);
             mWindow.draw(playCoinSprite);
 
-            // Отрисовка цифр баланса внутри серой плашки monetybg1.png
             sf::Text playCoinText;
             playCoinText.setFont(mFont);
-            playCoinText.setCharacterSize(28);
-            playCoinText.setFillColor(sf::Color(60, 60, 60)); // Темно-серый пиксельный цвет под плашку
+            playCoinText.setCharacterSize(22);
+            playCoinText.setFillColor(sf::Color(60, 60, 60));
             playCoinText.setString(std::to_string(mCoins));
 
-            // Центрируем текст ровно внутри нижнего серого поля
             playCoinText.setOrigin(playCoinText.getLocalBounds().left + playCoinText.getLocalBounds().width / 2.0f,
                 playCoinText.getLocalBounds().top + playCoinText.getLocalBounds().height / 2.0f);
 
-            // Координаты центра серого поля с учетом масштаба 0.42
-            playCoinText.setPosition(20.0f + (playCoinTexture.getSize().x * 0.07f) / 2.0f, 20.0f + 72.0f);
+            float centerX = coinBgX + (static_cast<float>(playCoinTexture.getSize().x) * coinBgScale) / 2.0f;
+            float centerY = coinBgY + (static_cast<float>(playCoinTexture.getSize().y) * coinBgScale) * 0.72f;
+
+            playCoinText.setPosition(centerX + textInBgOffsetX, centerY + textInBgOffsetY);
             mWindow.draw(playCoinText);
         }
 
-        // --- ПОДСКАЗКА НАВИГАЦИИ СНИЗУ НА ТРЕТЬЕМ ЭКРАНЕ ---
         sf::Text playNavigationText;
         playNavigationText.setFont(mFont);
         playNavigationText.setCharacterSize(24);
@@ -740,5 +731,32 @@ void Game::render() {
     mWindow.display();
 }
 
-void Game::saveProgress() { std::ofstream file("save.txt"); if (file.is_open()) { file << mCoins; file.close(); } }
-void Game::loadProgress() { std::ifstream file("save.txt"); if (file.is_open()) { file >> mCoins; file.close(); } }
+void Game::saveProgress() {
+    std::ofstream file("save.txt");
+    if (file.is_open()) {
+        file << mCoins << "\n";
+        file << mCurrentUpgradeLevel << "\n";
+
+        for (int i = 0; i < 3; ++i) {
+            file << (mUpgrades[i].getIsUnlocked() ? 1 : 0) << " ";
+        }
+        file.close();
+    }
+}
+
+void Game::loadProgress() {
+    std::ifstream file("save.txt");
+    if (file.is_open()) {
+        file >> mCoins;
+        file >> mCurrentUpgradeLevel;
+
+        for (int i = 0; i < 3; ++i) {
+            int unlocked;
+            file >> unlocked;
+            if (unlocked == 1) {
+                mUpgrades[i].unlock();
+            }
+        }
+        file.close();
+    }
+}

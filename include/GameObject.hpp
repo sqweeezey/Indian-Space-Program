@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <vector>
+#include <cstdlib>
 
 // --- БАЗОВЫЙ КЛАСС ---
 class GameObject {
@@ -46,12 +47,12 @@ public:
 
             // Твои точные границы:
             frames = {
-    sf::IntRect(46, 0, 171, 270),   // Высота 250 вместо 218
-    sf::IntRect(253, 0, 180, 270),
-    sf::IntRect(460, 0, 175,270),
-    sf::IntRect(660, 0, 170, 270),
-    sf::IntRect(860, 0, 185, 270),
-    sf::IntRect(1077, 0, 156, 270)
+                sf::IntRect(46, 0, 171, 270),   // Высота 250 вместо 218
+                sf::IntRect(253, 0, 180, 270),
+                sf::IntRect(460, 0, 175,270),
+                sf::IntRect(660, 0, 170, 270),
+                sf::IntRect(860, 0, 185, 270),
+                sf::IntRect(1077, 0, 156, 270)
             };
 
             mSprite.setTextureRect(frames[0]);
@@ -100,7 +101,6 @@ private:
 };
 
 // --- ДРОН ---
-// --- ДРОН ---
 class Drone : public Target {
 public:
     Drone() : Target(150) {
@@ -126,11 +126,28 @@ public:
     }
 
     void update(sf::Time deltaTime) override {
-        position.x += speed * deltaTime.asSeconds();
+        // --- ЛОГИКА ЗАВИСАНИЯ В ВОЗДУХЕ ---
+        if (mIsHovering) {
+            mHoverTimer -= deltaTime.asSeconds();
+            if (mHoverTimer <= 0.0f) {
+                mIsHovering = false;
+                speed = -speed; // Меняем направление после того как отвис!
+            }
+        }
+        else {
+            position.x += speed * deltaTime.asSeconds();
+
+            // Шанс зависнуть в воздухе (0.5% каждый кадр, чтобы не дергался слишком часто)
+            if (rand() % 1000 < 5) {
+                mIsHovering = true;
+                mHoverTimer = 0.5f + static_cast<float>(rand() % 15) / 10.0f; // Висит от 0.5 до 2.0 секунд
+            }
+        }
+
         mSprite.setPosition(position);
 
+        // --- ЛОГИКА АНИМАЦИИ (работает даже когда дрон висит на месте) ---
         mElapsedTime += deltaTime.asSeconds();
-
         if (mElapsedTime >= 0.06f) {
             mElapsedTime = 0.0f;
             mCurrentFrame = (mCurrentFrame + 1) % 6;
@@ -159,7 +176,12 @@ private:
     std::vector<sf::IntRect> frames;
     int mCurrentFrame = 0;
     float mElapsedTime = 0.0f;
+
+    // Переменные для зависания
+    float mHoverTimer = 0.0f;
+    bool mIsHovering = false;
 };
+
 // --- КОРОВА (ПРЕПЯТСТВИЕ) ---
 class Cow : public Target {
 public:

@@ -1,42 +1,46 @@
 #pragma once
-#include <iostream>
 #include <vector>
+#include <cmath>
 #include <SFML/System/Vector2.hpp>
 
-// Переименовали, чтобы не конфликтовало с Equipment.hpp
+#define M_PI 3.14159265358979323846
+
 struct RocketEngine { float powerMult; };
-struct RocketTire { float dragMult; };
+struct RocketTire { float dragMult; float bounciness; };
 
 class Rocket {
 public:
     Rocket() : mVelocityX(0.0f), mVelocityY(0.0f), mDistance(0.0f), mAltitude(0.0f),
-        mIsFlying(false), mGravity(9.81f), mLastQte(0.0f) {
+        mIsFlying(false), mGravity(9.81f), mLastPowerMult(0.0f), mLastAngle(45.0f) {
 
         mEngine = { 0.5f };
-        mTire = { 1.5f };
+        mTire = { 1.5f, 0.4f };
     }
 
-    void upgrade(float enginePower, float tireDrag) {
+    void upgrade(float enginePower, float tireDrag, float tireBounciness = 0.4f) {
         mEngine.powerMult = enginePower;
         mTire.dragMult = tireDrag;
+        mTire.bounciness = tireBounciness;
     }
 
-    void launch(float qteMultiplier) {
-        mLastQte = qteMultiplier; // Запоминаем силу для отрисовки идеальной линии!
+    void launch(float powerMultiplier, float angleDegrees, float startAltitude) {
+        mLastPowerMult = powerMultiplier;
+        mLastAngle = angleDegrees;
 
-        float power = (500.0f + (1500.0f * qteMultiplier)) * mEngine.powerMult;
+        float totalPower = 1900.0f * mEngine.powerMult * powerMultiplier;
+        float angleRad = angleDegrees * (M_PI / 180.0f);
 
-        mVelocityX = power * 0.85f;
-        mVelocityY = power * 0.5f;
+        mVelocityX = totalPower * std::cos(angleRad);
+        mVelocityY = totalPower * std::sin(angleRad);
 
-        mDistance = 0.0f; mAltitude = 0.0f; mIsFlying = true;
+        mDistance = 0.0f;
+        mAltitude = startAltitude;
+        mIsFlying = true;
     }
 
-    // dt передаем, но игнорируем, используя жесткое время (fixedDt)
     void update(float /* dt */) {
         if (!mIsFlying) return;
 
-        // Фиксированный шаг времени (как 60 FPS), чтобы физика не плавала от лагов
         float fixedDt = 1.0f / 60.0f;
 
         mVelocityX -= (mVelocityX * 0.5f * mTire.dragMult) * fixedDt;
@@ -45,33 +49,34 @@ public:
         mDistance += mVelocityX * fixedDt;
         mAltitude += mVelocityY * fixedDt;
 
+        // --- УЛЕТЕЛО ЗА ЭКРАН (Конец полета без ожидания) ---
+        if (mDistance > 1300.0f) {
+            mIsFlying = false;
+            return;
+        }
+
         if (mAltitude <= 0.0f) {
             mAltitude = 0.0f;
-            mIsFlying = false;
+            mVelocityY = -mVelocityY * (mTire.bounciness * 0.75f);
+            mVelocityX = mVelocityX * 0.45f;
+
+            if (std::abs(mVelocityY) < 60.0f && mVelocityX < 30.0f) {
+                mIsFlying = false;
+            }
         }
     }
 
-    std::vector<sf::Vector2f> getTrajectoryPoints(float qteMultiplier, sf::Vector2f startPos) {
+    std::vector<sf::Vector2f> getTrajectoryPoints(float powerMultiplier, float angleDegrees, sf::Vector2f startPos) {
         std::vector<sf::Vector2f> points;
-        float power = (500.0f + (1500.0f * qteMultiplier)) * mEngine.powerMult;
-        float vx = power * 0.85f;
-        float vy = power * 0.5f;
-        float dist = 0.0f, alt = 0.0f, vY = vy, vX = vx;
+        float angleRad = angleDegrees * (M_PI / 180.0f);
 
-        // Идеально совпадает с fixedDt из функции update
-        float simDt = 1.0f / 60.0f;
+        float step = 20.0f;
+        int maxDots = 10;
 
-        for (int i = 0; i < 150; ++i) {
-            vX -= (vX * 0.5f * mTire.dragMult) * simDt;
-            vY -= (mGravity * 100.0f) * simDt;
-            dist += vX * simDt;
-            alt += vY * simDt;
-
-            if (alt < 0.0f) break;
-
-            if (i % 3 == 0) {
-                points.push_back(sf::Vector2f(startPos.x + dist, startPos.y - alt));
-            }
+        for (int i = 1; i <= maxDots; ++i) {
+            float dx = std::cos(angleRad) * (step * i);
+            float dy = std::sin(angleRad) * (step * i);
+            points.push_back(sf::Vector2f(startPos.x + dx, startPos.y - dy));
         }
         return points;
     }
@@ -79,12 +84,13 @@ public:
     bool isFlying() const { return mIsFlying; }
     float getDistance() const { return mDistance; }
     float getAltitude() const { return mAltitude; }
-    float getLastQte() const { return mLastQte; } // Геттер для силы
+    float getLastPowerMult() const { return mLastPowerMult; }
+    float getLastAngle() const { return mLastAngle; }
 
 private:
     RocketEngine mEngine;
     RocketTire mTire;
     float mVelocityX, mVelocityY, mDistance, mAltitude, mGravity;
     bool mIsFlying;
-    float mLastQte;
+    float mLastPowerMult, mLastAngle;
 };
