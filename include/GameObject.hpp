@@ -172,7 +172,6 @@ enum class BossState { MOVING, HOVERING, DASHING };
 class Boss : public Target {
 public:
     Boss() : Target(1000) {
-        // 7 ударов топовым двигателем (7 * 0.75 урона = 5.25)
         mMaxHp = 5.25f;
         mHp = mMaxHp;
         mIsEnraged = false;
@@ -181,12 +180,26 @@ public:
         mStateTimer = 3.0f;
         speedY = 150.0f;
         speedX = -100.0f;
+        mTextureChangedInHover = false;
 
-        mBody.setSize(sf::Vector2f(100.0f, 100.0f));
-        mBody.setOrigin(50.0f, 50.0f);
-        mBody.setFillColor(sf::Color(100, 50, 150));
-        mBody.setOutlineThickness(3.0f);
-        mBody.setOutlineColor(sf::Color::Black);
+        // Загружаем обе текстуры заранее
+        if (mTexture1.loadFromFile("boss1.png")) {
+            int h = mTexture1.getSize().y;
+            frames = {
+                sf::IntRect(8, 0, 312, h),
+                sf::IntRect(326, 0, 308, h),
+                sf::IntRect(641, 0, 314, h),
+                sf::IntRect(960, 0, 311, h)
+            };
+            mSprite.setTexture(mTexture1);
+            mSprite.setTextureRect(frames[0]);
+            mSprite.setOrigin(frames[0].width / 2.0f, frames[0].height / 2.0f);
+            mSprite.setScale(0.30f, 0.30f);
+        }
+
+        if (!mTexture2.loadFromFile("boss2.png")) {
+            std::cerr << "[SFML Error] Failed to load boss2.png!" << std::endl;
+        }
 
         mHpBg.setSize(sf::Vector2f(100.0f, 10.0f));
         mHpBg.setOrigin(50.0f, 5.0f);
@@ -201,18 +214,32 @@ public:
 
     bool isBoss() const override { return true; }
 
+    // --- ФУНКЦИЯ ПРОВЕРКИ ЩИТА ДЛЯ КЛАССА GAME ---
+    bool isShieldActive() const {
+        return (mState == BossState::HOVERING && mTextureChangedInHover);
+    }
+
     HitResult takeDamage(float damage) override {
-        // Если неуязвим после прошлого удара - игнорируем урон
+        // Если у босса сработала задержка (он уже мигает от прошлого попадания), игнорируем
         if (mFlashTimer > 0.0f) {
             return HitResult::IGNORED;
         }
 
+        // --- ПРОВЕРКА НА ДВЕ СЕКУНДЫ ЩИТА ---
+        if (mState == BossState::HOVERING && mTextureChangedInHover) {
+            // Если горит вторая текстура, ХП НЕ отнимаются и КРАСНЫМ он НЕ становится. 
+            // Сразу возвращаем DAMAGED, чтобы ракета в Game.cpp просто взорвалась
+            return HitResult::DAMAGED;
+        }
+
+        // Включаем мигание красным цветом ТОЛЬКО если щит не активен!
+        mFlashTimer = 0.4f;
+
+        // Если щита нет — отнимаем здоровье как обычно
         mHp -= damage;
-        mFlashTimer = 0.4f; // 0.4 секунды неуязвимости
 
         if (mHp <= mMaxHp * 0.5f && !mIsEnraged) {
             mIsEnraged = true;
-            // Ускоряем базовую скорость в ярости
             speedY *= 1.5f;
             speedX *= 1.5f;
         }
@@ -229,37 +256,44 @@ public:
         float dt = deltaTime.asSeconds();
         mStateTimer -= dt;
 
-        // Мигание красным при уроне
-        if (mFlashTimer > 0.0f) {
-            mFlashTimer -= dt;
-            mBody.setFillColor(sf::Color::Red);
-        }
-        else {
-            if (mIsEnraged) mBody.setFillColor(sf::Color(180, 50, 50));
-            else mBody.setFillColor(sf::Color(100, 50, 150));
-        }
-
-        // --- МАШИНА СОСТОЯНИЙ (ХАОТИЧНОЕ ДВИЖЕНИЕ) ---
+        // --- ЛОГИКА СОСТОЯНИЙ И ПЕРЕКЛЮЧЕНИЯ ТЕКСТУР ---
         if (mState == BossState::MOVING) {
             position.y += speedY * dt;
             position.x += speedX * dt;
 
-            // ОГРАНИЧЕНИЕ ПО X: Теперь не подлетает левее 600 (середина экрана)
-            if (position.y < 100.0f || position.y > 500.0f) speedY = -speedY;
+            if (position.y < 200.0f || position.y > 500.0f) speedY = -speedY;
             if (position.x < 600.0f || position.x > 1150.0f) speedX = -speedX;
 
             if (mStateTimer <= 0.0f) {
                 mState = BossState::HOVERING;
-                mStateTimer = mIsEnraged ? 1.0f : 2.0f; // Висит на месте
+                mStateTimer = mIsEnraged ? 2.0f : 4.0f; // Стоит в 2 раза дольше (4 секунды)
+                mTextureChangedInHover = false;
+
+                mSprite.setTexture(mTexture1);
+                mSprite.setTextureRect(frames[mCurrentFrame]);
             }
         }
         else if (mState == BossState::HOVERING) {
-            // Просто висит и ждет
+            float halfTime = mIsEnraged ? 1.0f : 2.0f;
+
+            // Переключаем на boss2.png ровно один раз по прошествии половины времени (последние 2 секунды)
+            if (mStateTimer <= halfTime && !mTextureChangedInHover) {
+                mSprite.setTexture(mTexture2);
+
+                // Аккуратно сбрасываем прямоугольник под полный размер boss2.png без флага true
+                sf::Vector2u size = mTexture2.getSize();
+                mSprite.setTextureRect(sf::IntRect(0, 0, size.x, size.y));
+
+                mTextureChangedInHover = true;
+            }
+
             if (mStateTimer <= 0.0f) {
                 mState = BossState::DASHING;
-                mStateTimer = 1.0f; // Время рывка
+                mStateTimer = 1.0f;
 
-                // Выбираем случайное направление для рывка
+                mSprite.setTexture(mTexture1);
+                mSprite.setTextureRect(frames[mCurrentFrame]);
+
                 speedX = (rand() % 2 == 0) ? -600.0f : 600.0f;
                 speedY = (rand() % 2 == 0) ? -200.0f : 200.0f;
 
@@ -270,25 +304,72 @@ public:
             position.x += speedX * dt;
             position.y += speedY * dt;
 
-            // Жесткие границы при рывке, чтобы не улетел за экран (и не залетел за спину)
             if (position.x < 600.0f || position.x > 1150.0f) speedX = -speedX;
-            if (position.y < 50.0f || position.y > 600.0f) speedY = -speedY;
+            if (position.y < 200.0f || position.y > 550.0f) speedY = -speedY;
 
             if (mStateTimer <= 0.0f) {
                 mState = BossState::MOVING;
                 mStateTimer = 3.0f;
 
-                // Возвращаем обычную скорость после рывка
+                mSprite.setTexture(mTexture1);
+                mSprite.setTextureRect(frames[mCurrentFrame]);
+
                 speedX = (rand() % 2 == 0) ? -150.0f : 150.0f;
                 speedY = (rand() % 2 == 0) ? -150.0f : 150.0f;
                 if (mIsEnraged) { speedX *= 1.5f; speedY *= 1.5f; }
             }
         }
 
-        mBody.setPosition(position);
+        // --- АНИМАЦИЯ КАДРОВ ---
+        if (mState != BossState::HOVERING || !mTextureChangedInHover) {
+            mElapsedTime += dt;
+            float currentAnimSpeed = mIsEnraged ? 0.08f : 0.15f;
 
-        mHpBg.setPosition(position.x, position.y - 70.0f);
-        mHpBar.setPosition(position.x, position.y - 70.0f);
+            if (mElapsedTime >= currentAnimSpeed) {
+                mElapsedTime = 0.0f;
+                mCurrentFrame = (mCurrentFrame + 1) % frames.size();
+                mSprite.setTextureRect(frames[mCurrentFrame]);
+                mSprite.setOrigin(frames[mCurrentFrame].width / 2.0f, frames[mCurrentFrame].height / 2.0f);
+            }
+        }
+        else {
+            // Если включен щит boss2.png, центрируем его по реальным габаритам картинки
+            sf::Vector2u size = mTexture2.getSize();
+            mSprite.setOrigin(size.x / 2.0f, size.y / 2.0f);
+        }
+
+        // Эффект получения урона (подсветка красным цветом)
+        if (mFlashTimer > 0.0f) {
+            mFlashTimer -= dt;
+            mSprite.setColor(sf::Color(255, 100, 100));
+        }
+        else {
+            if (mIsEnraged) mSprite.setColor(sf::Color(255, 200, 200));
+            else mSprite.setColor(sf::Color::White);
+        }
+
+        // --- ТУТ НАСТРАИВАЕМ РАЗМЕР (МАСШТАБ) ДЛЯ КАЖДОГО БОССА ---
+        float scaleX = 0.30f; // Это размер по умолчанию для первой формы (0.30f)
+        float scaleY = 0.30f;
+
+        // Если босс стоит и включилась вторая текстура щита (boss2)
+        if (mState == BossState::HOVERING && mTextureChangedInHover) {
+            scaleX = 0.40f; // Сделайте это число больше/меньше, чтобы изменить масштаб щита
+            scaleY = 0.40f;
+        }
+
+        // Поворот модельки влево/вправо с учетом масштаба
+        if (speedX < 0.0f) {
+            mSprite.setScale(-scaleX, scaleY);
+        }
+        else {
+            mSprite.setScale(scaleX, scaleY);
+        }
+
+        mSprite.setPosition(position);
+
+        mHpBg.setPosition(position.x, position.y - 80.0f);
+        mHpBar.setPosition(position.x, position.y - 80.0f);
 
         float hpPercent = mHp / mMaxHp;
         if (hpPercent < 0.0f) hpPercent = 0.0f;
@@ -297,16 +378,23 @@ public:
 
     void draw(sf::RenderWindow& window) override {
         if (active) {
-            window.draw(mBody);
+            window.draw(mSprite);
             window.draw(mHpBg);
             window.draw(mHpBar);
         }
     }
 
-    sf::FloatRect getBounds() const override { return mBody.getGlobalBounds(); }
+    sf::FloatRect getBounds() const override { return mSprite.getGlobalBounds(); }
 
 private:
-    sf::RectangleShape mBody;
+    sf::Sprite mSprite;
+    sf::Texture mTexture1;
+    sf::Texture mTexture2;
+
+    std::vector<sf::IntRect> frames;
+    int mCurrentFrame = 0;
+    float mElapsedTime = 0.0f;
+
     sf::RectangleShape mHpBg;
     sf::RectangleShape mHpBar;
 
@@ -319,4 +407,6 @@ private:
     float mStateTimer;
     float speedY;
     float speedX;
+
+    bool mTextureChangedInHover;
 };
