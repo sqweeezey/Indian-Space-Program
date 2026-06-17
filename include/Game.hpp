@@ -8,7 +8,7 @@
 #include "GameObject.hpp"
 #include "QTEManager.hpp"
 
-enum class GameState { MENU, SHOP, PLAY, PAUSE };
+enum class GameState { MENU, SHOP, PLAY, PAUSE, INSTRUCTIONS };
 
 class Game {
 public:
@@ -88,6 +88,14 @@ private:
     sf::Text    mWorkshopBtnText;
     sf::Text    mStreetBtnText;
 
+    sf::Sprite  mInstBtnSprite;
+    sf::Text    mInstBtnText;
+    sf::Texture mInstBgTexture;
+    sf::Sprite  mInstBgSprite;
+
+    sf::Texture mInstExitBtnTexture;
+    sf::Sprite  mInstExitBtnSprite;
+
     sf::Sprite  mResetBtnSprite;
     sf::Text    mResetBtnText;
 
@@ -95,15 +103,15 @@ private:
     int mMobsForBoss;
     bool mIsBossActive;
 
-    sf::RectangleShape mBossProgressBarBg;
-    sf::RectangleShape mBossProgressBar;
-    sf::Text mBossProgressText;
-
     int mCowsHit;
     int mCowsForGameOver;
     sf::RectangleShape mCowProgressBarBg;
     sf::RectangleShape mCowProgressBar;
     sf::Text mCowProgressText;
+
+    sf::RectangleShape mBossProgressBarBg;
+    sf::RectangleShape mBossProgressBar;
+    sf::Text mBossProgressText;
 
     float mHitSlowdownTimer;
 
@@ -116,9 +124,18 @@ private:
     float mBossDefeatedTimer;
     sf::Text mDefeatedText;
 
-    // --- НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ КИНЕМАТОГРАФИЧНОГО GAME OVER ---
     bool mIsGameOverActive;
     float mGameOverTimer;
     sf::Text mGameOverText;
-    // ---------------------------------------------------------
+
+    // --- НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ЭКРАНА ПОБЕДЫ ---
+    bool mIsVictoryScreenActive;
+    sf::Texture mCupTexture;
+    sf::Sprite  mCupSprite;
+    sf::Text    mCongratsText;
+    sf::Sprite  mVictoryQuitBtnSprite;
+    sf::Text    mVictoryQuitBtnText;
+    sf::Sprite  mVictoryContBtnSprite;
+    sf::Text    mVictoryContBtnText;
+    // ------------------------------------------
 };

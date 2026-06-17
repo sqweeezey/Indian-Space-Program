@@ -26,6 +26,7 @@ Game::Game()
     , mBossDefeatedTimer(0.0f)
     , mIsGameOverActive(false)
     , mGameOverTimer(0.0f)
+    , mIsVictoryScreenActive(false) // <-- Инициализация экрана победы
 {
     srand(static_cast<unsigned int>(time(0)));
     mWindow.setFramerateLimit(60);
@@ -66,6 +67,29 @@ Game::Game()
     mDefeatedText.setString("BOSS DEFEATED!");
     mDefeatedText.setOrigin(mDefeatedText.getLocalBounds().width / 2.0f, mDefeatedText.getLocalBounds().height / 2.0f);
     mDefeatedText.setPosition(640.0f, 300.0f);
+
+    // --- НАСТРОЙКА КУБКА И ТЕКСТА ПОБЕДЫ ---
+    if (!mCupTexture.loadFromFile("cup.png")) {
+        std::cout << "[Error] Could not load cup.png!" << std::endl;
+    }
+    else {
+        mCupSprite.setTexture(mCupTexture);
+        mCupSprite.setOrigin(mCupTexture.getSize().x / 2.0f, mCupTexture.getSize().y / 2.0f);
+        mCupSprite.setPosition(640.0f, 350.0f);
+        mCupSprite.setScale(0.8f, 0.8f);
+    }
+
+    mCongratsText.setFont(mFont);
+    mCongratsText.setCharacterSize(80);
+    mCongratsText.setStyle(sf::Text::Bold);
+    mCongratsText.setFillColor(sf::Color(255, 215, 0)); // Золотой
+    mCongratsText.setOutlineColor(sf::Color::Black);
+    mCongratsText.setOutlineThickness(4.0f);
+    mCongratsText.setString("CONGRATULATIONS!");
+    mCongratsText.setOrigin(mCongratsText.getLocalBounds().left + mCongratsText.getLocalBounds().width / 2.0f,
+        mCongratsText.getLocalBounds().top + mCongratsText.getLocalBounds().height / 2.0f);
+    mCongratsText.setPosition(640.0f, 100.0f);
+    // ----------------------------------------
 
     mCowProgressBarBg.setSize(sf::Vector2f(200.0f, 20.0f));
     mCowProgressBarBg.setFillColor(sf::Color(50, 50, 50, 200));
@@ -169,6 +193,29 @@ Game::Game()
         mBoardSprite.setScale(0.85f, 0.85f);
     }
 
+    if (!mInstBgTexture.loadFromFile("instbg.png")) {
+        std::cout << "[Error] Could not load instbg.png!" << std::endl;
+    }
+    else {
+        mInstBgSprite.setTexture(mInstBgTexture);
+        float scaleX = 1280.0f / mInstBgTexture.getSize().x;
+        float scaleY = 720.0f / mInstBgTexture.getSize().y;
+        mInstBgSprite.setScale(scaleX, scaleY);
+    }
+
+    if (!mInstExitBtnTexture.loadFromFile("exitbutton.png")) {
+        std::cout << "[Error] Could not load exitbutton.png!" << std::endl;
+    }
+    else {
+        mInstExitBtnSprite.setTexture(mInstExitBtnTexture);
+        mInstExitBtnSprite.setOrigin(mInstExitBtnTexture.getSize().x / 2.0f, mInstExitBtnTexture.getSize().y / 2.0f);
+        mInstExitBtnSprite.setPosition(1200.0f, 60.0f);
+
+        float targetSize = 80.0f;
+        float exitScale = targetSize / mInstExitBtnTexture.getSize().x;
+        mInstExitBtnSprite.setScale(exitScale, exitScale);
+    }
+
     for (int i = 0; i < 3; ++i) {
         std::string eFile = "engine" + std::to_string(i + 1) + ".png";
         std::string tFile = "tire" + std::to_string(i + 1) + ".png";
@@ -200,7 +247,37 @@ Game::Game()
             mBuyKeySprites[i].setTexture(mBuyKeyTexture);
             mBuyKeySprites[i].setOrigin(static_cast<float>(mBuyKeyTexture.getSize().x) / 2.0f, static_cast<float>(mBuyKeyTexture.getSize().y) / 2.0f);
         }
+
+        mInstBtnSprite.setTexture(mBuyKeyTexture);
+
+        // --- НАСТРОЙКА КНОПОК ПОБЕДЫ ---
+        mVictoryQuitBtnSprite.setTexture(mBuyKeyTexture);
+        mVictoryQuitBtnSprite.setOrigin(mBuyKeyTexture.getSize().x / 2.0f, mBuyKeyTexture.getSize().y / 2.0f);
+        mVictoryQuitBtnSprite.setPosition(460.0f, 620.0f);
+        mVictoryQuitBtnSprite.setScale(1.2f, 1.2f);
+
+        mVictoryContBtnSprite.setTexture(mBuyKeyTexture);
+        mVictoryContBtnSprite.setOrigin(mBuyKeyTexture.getSize().x / 2.0f, mBuyKeyTexture.getSize().y / 2.0f);
+        mVictoryContBtnSprite.setPosition(820.0f, 620.0f);
+        mVictoryContBtnSprite.setScale(1.2f, 1.2f);
     }
+
+    // Тексты кнопок победы
+    mVictoryQuitBtnText.setFont(mFont);
+    mVictoryQuitBtnText.setCharacterSize(38);
+    mVictoryQuitBtnText.setFillColor(sf::Color::White);
+    mVictoryQuitBtnText.setString("Quit");
+    mVictoryQuitBtnText.setOrigin(mVictoryQuitBtnText.getLocalBounds().left + mVictoryQuitBtnText.getLocalBounds().width / 2.0f,
+        mVictoryQuitBtnText.getLocalBounds().top + mVictoryQuitBtnText.getLocalBounds().height / 2.0f);
+    mVictoryQuitBtnText.setPosition(460.0f, 620.0f);
+
+    mVictoryContBtnText.setFont(mFont);
+    mVictoryContBtnText.setCharacterSize(38);
+    mVictoryContBtnText.setFillColor(sf::Color::White);
+    mVictoryContBtnText.setString("Continue");
+    mVictoryContBtnText.setOrigin(mVictoryContBtnText.getLocalBounds().left + mVictoryContBtnText.getLocalBounds().width / 2.0f,
+        mVictoryContBtnText.getLocalBounds().top + mVictoryContBtnText.getLocalBounds().height / 2.0f);
+    mVictoryContBtnText.setPosition(820.0f, 620.0f);
 
     if (!mMenuBgTexture.loadFromFile("menubg.png")) {
         std::cout << "[Error] Could not load menubg.png!" << std::endl;
@@ -223,6 +300,10 @@ Game::Game()
     mWorkshopBtnText.setFont(mFont);
     mWorkshopBtnText.setFillColor(sf::Color::White);
     mWorkshopBtnText.setString("Workshop");
+
+    mInstBtnText.setFont(mFont);
+    mInstBtnText.setFillColor(sf::Color::White);
+    mInstBtnText.setString("Instructions");
 
     mStreetBtnSprite.setTexture(mBuyKeyTexture);
     mStreetBtnText.setFont(mFont);
@@ -337,6 +418,23 @@ void Game::processEvents() {
 
         if (mIsGameOverActive) continue;
 
+        // --- ЛОГИКА НАЖАТИЙ НА КНОПКИ В ЭКРАНЕ ПОБЕДЫ ---
+        if (mIsVictoryScreenActive) {
+            if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                sf::Vector2i pixelPos = sf::Mouse::getPosition(mWindow);
+                sf::Vector2f mousePos = mWindow.mapPixelToCoords(pixelPos);
+
+                if (mVictoryQuitBtnSprite.getGlobalBounds().contains(mousePos.x, mousePos.y)) {
+                    mWindow.close(); // Кнопка Quit выключает игру
+                }
+                else if (mVictoryContBtnSprite.getGlobalBounds().contains(mousePos.x, mousePos.y)) {
+                    mIsVictoryScreenActive = false; // Кнопка Continue закрывает плашку, продолжаем играть
+                }
+            }
+            continue; // Блокируем остальные действия (пробел и т.д.), пока висит кубок
+        }
+        // ------------------------------------------------
+
         if (event.type == sf::Event::KeyPressed) {
             if (event.key.code == sf::Keyboard::Num1) mCurrentState = GameState::MENU;
             if (event.key.code == sf::Keyboard::Num2) mCurrentState = GameState::SHOP;
@@ -384,18 +482,28 @@ void Game::processEvents() {
             sf::Vector2i pixelPos = sf::Mouse::getPosition(mWindow);
             sf::Vector2f mousePos = mWindow.mapPixelToCoords(pixelPos);
 
+            if (mCurrentState == GameState::INSTRUCTIONS) {
+                if (mInstExitBtnSprite.getGlobalBounds().contains(mousePos.x, mousePos.y)) {
+                    mCurrentState = GameState::MENU;
+                }
+                continue;
+            }
+
             if (mCurrentState == GameState::MENU) {
                 float menuBtnScale = 1.1f;
                 float menuBtnCenterX = 530.0f;
-                float workshopBtnY = 300.0f;
-                float streetBtnY = 400.0f;
-                float resetBtnY = 500.0f;
+
+                float workshopBtnY = 260.0f;
+                float streetBtnY = 360.0f;
+                float instBtnY = 460.0f;
+                float resetBtnY = 560.0f;
 
                 float btnW = static_cast<float>(mBuyKeyTexture.getSize().x) * menuBtnScale;
                 float btnH = static_cast<float>(mBuyKeyTexture.getSize().y) * menuBtnScale;
 
                 sf::FloatRect workshopBounds(menuBtnCenterX, workshopBtnY, btnW, btnH);
                 sf::FloatRect streetBounds(menuBtnCenterX, streetBtnY, btnW, btnH);
+                sf::FloatRect instBounds(menuBtnCenterX, instBtnY, btnW, btnH);
                 sf::FloatRect resetBounds(menuBtnCenterX, resetBtnY, btnW, btnH);
 
                 if (workshopBounds.contains(mousePos.x, mousePos.y)) {
@@ -403,6 +511,9 @@ void Game::processEvents() {
                 }
                 else if (streetBounds.contains(mousePos.x, mousePos.y)) {
                     mCurrentState = GameState::PLAY;
+                }
+                else if (instBounds.contains(mousePos.x, mousePos.y)) {
+                    mCurrentState = GameState::INSTRUCTIONS;
                 }
                 else if (resetBounds.contains(mousePos.x, mousePos.y)) {
                     mCoins = 0;
@@ -463,6 +574,12 @@ void Game::processEvents() {
 
 void Game::update(sf::Time deltaTime) {
     if (mCurrentState != GameState::PLAY) return;
+
+    // --- ЕСЛИ ЭКРАН ПОБЕДЫ АКТИВЕН - ЗАМОРАЖИВАЕМ ИГРУ ---
+    if (mIsVictoryScreenActive) {
+        return; // Физика, таймеры и движения не обновляются!
+    }
+    // ------------------------------------------------------
 
     float dt = deltaTime.asSeconds();
     sf::Time scaledTime = sf::seconds(dt);
@@ -644,6 +761,10 @@ void Game::update(sf::Time deltaTime) {
 
                         mIsBossDefeatedMessageActive = true;
                         mBossDefeatedTimer = 3.0f;
+
+                        // --- АКТИВАЦИЯ ЭКРАНА ПОБЕДЫ ---
+                        mIsVictoryScreenActive = true;
+                        // -------------------------------
                     }
                     else {
                         if (!mIsBossActive && !mIsBossWarningActive && mTargets[i]->isDrone()) {
@@ -653,12 +774,10 @@ void Game::update(sf::Time deltaTime) {
                         if (dynamic_cast<Cow*>(mTargets[i].get())) {
                             mCowsHit++;
 
-                            // --- ОТХИЛ БОССА ПРИ ПОПАДАНИИ В КОРОВУ ---
                             if (mIsBossActive && mTargets[0] && mTargets[0]->isBoss()) {
-                                mTargets[0]->heal(0.75f); // 1 макс тычка 3-го двигателя
+                                mTargets[0]->heal(0.75f);
                                 std::cout << "[Game] Boss healed by hitting a cow!" << std::endl;
                             }
-                            // ------------------------------------------
 
                             if (mCowsHit >= mCowsForGameOver) {
                                 mIsGameOverActive = true;
@@ -701,6 +820,7 @@ void Game::render() {
     case GameState::SHOP:  bgColor = sf::Color(50, 50, 30);   break;
     case GameState::PLAY:  bgColor = sf::Color(30, 50, 30);   break;
     case GameState::PAUSE: bgColor = sf::Color(50, 30, 30);   break;
+    case GameState::INSTRUCTIONS: bgColor = sf::Color(20, 20, 30); break;
     }
     mWindow.clear(bgColor);
 
@@ -708,7 +828,13 @@ void Game::render() {
         mWindow.draw(mMenuBgSprite);
 
         float titleX = 650.0f; float titleY = 100.0f; int titleSize = 110;
-        float btnCenterX = 530.0f; float workshopY = 300.0f; float streetY = 400.0f;
+        float btnCenterX = 530.0f;
+
+        float workshopY = 260.0f;
+        float streetY = 360.0f;
+        float instY = 460.0f;
+        float resetY = 560.0f;
+
         float btnScale = 1.1f; int textBtnSize = 34;
         float textOffsetX = 108.0f; float textOffsetY = 25.0f;
 
@@ -735,7 +861,15 @@ void Game::render() {
         mStreetBtnText.setPosition(btnCenterX + textOffsetX, streetY + textOffsetY);
         mWindow.draw(mStreetBtnText);
 
-        float resetY = 500.0f;
+        mInstBtnSprite.setPosition(btnCenterX, instY);
+        mInstBtnSprite.setScale(btnScale, btnScale);
+        mWindow.draw(mInstBtnSprite);
+
+        mInstBtnText.setCharacterSize(textBtnSize);
+        mInstBtnText.setOrigin(mInstBtnText.getLocalBounds().width / 2.0f, mInstBtnText.getLocalBounds().height / 2.0f);
+        mInstBtnText.setPosition(btnCenterX + textOffsetX, instY + textOffsetY);
+        mWindow.draw(mInstBtnText);
+
         mResetBtnSprite.setPosition(btnCenterX, resetY);
         mResetBtnSprite.setScale(btnScale, btnScale);
         mWindow.draw(mResetBtnSprite);
@@ -744,6 +878,20 @@ void Game::render() {
         mResetBtnText.setOrigin(mResetBtnText.getLocalBounds().width / 2.0f, mResetBtnText.getLocalBounds().height / 2.0f);
         mResetBtnText.setPosition(btnCenterX + textOffsetX, resetY + textOffsetY);
         mWindow.draw(mResetBtnText);
+    }
+    else if (mCurrentState == GameState::INSTRUCTIONS) {
+        mWindow.draw(mInstBgSprite);
+        mWindow.draw(mInstExitBtnSprite);
+
+        sf::Text tipText;
+        tipText.setFont(mFont);
+        tipText.setCharacterSize(28);
+        tipText.setFillColor(sf::Color::White);
+        tipText.setOutlineColor(sf::Color::Black);
+        tipText.setOutlineThickness(2.0f);
+        tipText.setPosition(40.0f, 660.0f);
+        tipText.setString("Press [1] or Click Exit Button to return to Main Menu");
+        mWindow.draw(tipText);
     }
     else if (mCurrentState == GameState::SHOP) {
         mWindow.draw(mShopBgSprite);
@@ -1000,6 +1148,25 @@ void Game::render() {
             mWindow.draw(mRedFlashRect);
             mWindow.draw(mGameOverText);
         }
+
+        // --- ОТРИСОВКА ЭКРАНА ПОБЕДЫ ---
+        if (mIsVictoryScreenActive) {
+            // Рисуем темное полупрозрачное затемнение
+            sf::RectangleShape darkOverlay(sf::Vector2f(1280.0f, 720.0f));
+            darkOverlay.setFillColor(sf::Color(0, 0, 0, 200));
+            mWindow.draw(darkOverlay);
+
+            // Кубок и надпись
+            mWindow.draw(mCupSprite);
+            mWindow.draw(mCongratsText);
+
+            // Кнопки
+            mWindow.draw(mVictoryQuitBtnSprite);
+            mWindow.draw(mVictoryQuitBtnText);
+            mWindow.draw(mVictoryContBtnSprite);
+            mWindow.draw(mVictoryContBtnText);
+        }
+        // --------------------------------
     }
 
     mWindow.display();
