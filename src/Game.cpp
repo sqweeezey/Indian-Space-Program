@@ -4,6 +4,70 @@
 #include <ctime>
 #include <cmath> 
 
+// ==========================================
+// --- ¬—œŒÃŒ√¿“≈À‹Õ€≈ Ã≈“Œƒ€ (–≈‘¿ “Œ–»Õ√) ---
+// ==========================================
+void Game::initButton(sf::Sprite& sprite, sf::Text& text, const std::string& str, float posX, float posY, float scale, int fontSize) {
+    sprite.setTexture(mBuyKeyTexture);
+    sprite.setOrigin(static_cast<float>(mBuyKeyTexture.getSize().x) / 2.0f, static_cast<float>(mBuyKeyTexture.getSize().y) / 2.0f);
+    sprite.setPosition(posX, posY);
+    sprite.setScale(scale, scale);
+
+    text.setFont(mFont);
+    text.setCharacterSize(fontSize);
+    text.setFillColor(sf::Color::White);
+    text.setString(str);
+    sf::FloatRect textRect = text.getLocalBounds();
+    text.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
+    text.setPosition(posX, posY - 4.0f);
+}
+
+void Game::initProgressBar(sf::RectangleShape& bg, sf::RectangleShape& bar, sf::Text& text, const std::string& str, sf::Color color, float posY) {
+    bg.setSize(sf::Vector2f(200.0f, 20.0f));
+    bg.setFillColor(sf::Color(50, 50, 50, 200));
+    bg.setOutlineThickness(2.0f);
+    bg.setOutlineColor(sf::Color::Black);
+    bg.setPosition(1050.0f, posY);
+
+    bar.setSize(sf::Vector2f(0.0f, 20.0f));
+    bar.setFillColor(color);
+    bar.setPosition(1050.0f, posY);
+
+    text.setFont(mFont);
+    text.setCharacterSize(22);
+    text.setFillColor(sf::Color::White);
+    text.setOutlineThickness(1.5f);
+    text.setOutlineColor(sf::Color::Black);
+    text.setPosition(1050.0f, posY - 27.0f);
+    text.setString(str);
+}
+
+void Game::resetGameProgress() {
+    mCoins = 0;
+    mCurrentUpgradeLevel = 0;
+    mMobsKilled = 0;
+    mCowsHit = 0;
+    mIsBossActive = false;
+    mIsBossWarningActive = false;
+    mIsGameOverActive = false;
+    mIsVictoryScreenActive = false;
+    mUpgrades.clear();
+
+    mUpgrades.push_back(UpgradeSet("Tuc-Tuc Set", 0, true, 0.4125f, 1.5f));
+    mUpgrades.push_back(UpgradeSet("Abdurahman Set", 300, false, 0.55f, 1.0f));
+    mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 1000, false, 0.75f, 0.4f));
+
+    applyUpgrades();
+    saveProgress();
+
+    mRocket = Rocket();
+    applyUpgrades();
+    mQteManager = QTEManager();
+    mCurrentState = GameState::MENU;
+    std::cout << "[Game] Progress Reset to ZERO!" << std::endl;
+}
+// ==========================================
+
 Game::Game()
     : mWindow(sf::VideoMode(1280, 720), "Warsztat Jugaad")
     , mCurrentState(GameState::MENU)
@@ -22,8 +86,6 @@ Game::Game()
     , mHitSlowdownTimer(0.0f)
     , mIsBossWarningActive(false)
     , mBossWarningTimer(0.0f)
-    , mIsBossDefeatedMessageActive(false)
-    , mBossDefeatedTimer(0.0f)
     , mIsGameOverActive(false)
     , mGameOverTimer(0.0f)
     , mIsVictoryScreenActive(false)
@@ -32,10 +94,25 @@ Game::Game()
     srand(static_cast<unsigned int>(time(0)));
     mWindow.setFramerateLimit(60);
 
-    if (!mFont.loadFromFile("VT323-Regular.ttf")) {
-        std::cout << "[Error] Font missing!" << std::endl;
-    }
+    // --- 1. «¿√–”« ¿ ¡¿«Œ¬€’ ¿——≈“Œ¬ ---
+    if (!mFont.loadFromFile("VT323-Regular.ttf")) std::cout << "[Error] Font missing!" << std::endl;
+    if (!mBuyKeyTexture.loadFromFile("buykey.png")) std::cout << "[Error] buykey.png missing!" << std::endl;
 
+    // --- 2. Õ¿—“–Œ… ¿  ÕŒœŒ  » ÿ ¿À ◊≈–≈« ”Õ»¬≈–—¿À‹Õ€≈ ‘”Õ ÷»» ---
+    float btnCenterX = 640.0f; // »—œ–¿¬À≈ÕŒ: “ÂÔÂ¸ ˆÂÌÚ ÍÌÓÔÓÍ Ó‚ÌÓ ÔÓÒÂÂ‰ËÌÂ ˝Í‡Ì‡
+    initButton(mWorkshopBtnSprite, mWorkshopBtnText, "Workshop", btnCenterX, 260.0f);
+    initButton(mStreetBtnSprite, mStreetBtnText, "Street", btnCenterX, 360.0f);
+    initButton(mInstBtnSprite, mInstBtnText, "Instructions", btnCenterX, 460.0f);
+    initButton(mResetBtnSprite, mResetBtnText, "RESET", btnCenterX, 560.0f);
+    mResetBtnText.setFillColor(sf::Color(255, 100, 100)); //  ‡ÒÌ˚È ˆ‚ÂÚ ‰Îˇ Ò·ÓÒ‡
+
+    initButton(mVictoryQuitBtnSprite, mVictoryQuitBtnText, "Quit", 460.0f, 620.0f, 1.2f, 38);
+    initButton(mVictoryContBtnSprite, mVictoryContBtnText, "Continue", 820.0f, 620.0f, 1.2f, 38);
+
+    initProgressBar(mCowProgressBarBg, mCowProgressBar, mCowProgressText, "COWS HIT:", sf::Color(255, 50, 50), 35.0f);
+    initProgressBar(mBossProgressBarBg, mBossProgressBar, mBossProgressText, "DRONES KILLED:", sf::Color(255, 150, 0), 92.0f);
+
+    // --- 3. Õ¿—“–Œ… ¿ “≈ —“Œ¬ » ¬»«”¿À‹Õ€’ ›À≈Ã≈Õ“Œ¬ ---
     mGameOverText.setFont(mFont);
     mGameOverText.setCharacterSize(130);
     mGameOverText.setStyle(sf::Text::Bold);
@@ -45,9 +122,6 @@ Game::Game()
     mGameOverText.setString("GAME OVER!");
     mGameOverText.setOrigin(mGameOverText.getLocalBounds().width / 2.0f, mGameOverText.getLocalBounds().height / 2.0f);
     mGameOverText.setPosition(640.0f, 330.0f);
-
-    mRedFlashRect.setSize(sf::Vector2f(1280.0f, 720.0f));
-    mRedFlashRect.setFillColor(sf::Color(255, 0, 0, 0));
 
     mWarningText.setFont(mFont);
     mWarningText.setCharacterSize(100);
@@ -59,15 +133,8 @@ Game::Game()
     mWarningText.setOrigin(mWarningText.getLocalBounds().width / 2.0f, mWarningText.getLocalBounds().height / 2.0f);
     mWarningText.setPosition(640.0f, 300.0f);
 
-    mDefeatedText.setFont(mFont);
-    mDefeatedText.setCharacterSize(110);
-    mDefeatedText.setStyle(sf::Text::Bold);
-    mDefeatedText.setFillColor(sf::Color(255, 215, 0));
-    mDefeatedText.setOutlineColor(sf::Color::Black);
-    mDefeatedText.setOutlineThickness(6.0f);
-    mDefeatedText.setString("BOSS DEFEATED!");
-    mDefeatedText.setOrigin(mDefeatedText.getLocalBounds().width / 2.0f, mDefeatedText.getLocalBounds().height / 2.0f);
-    mDefeatedText.setPosition(640.0f, 300.0f);
+    mRedFlashRect.setSize(sf::Vector2f(1280.0f, 720.0f));
+    mRedFlashRect.setFillColor(sf::Color(255, 0, 0, 0));
 
     mLightBeam1.setPointCount(4);
     mLightBeam1.setPoint(0, sf::Vector2f(-180.0f, -1200.0f));
@@ -77,18 +144,10 @@ Game::Game()
     mLightBeam1.setFillColor(sf::Color(255, 255, 200, 0));
     mLightBeam1.setPosition(200.0f, 800.0f);
 
-    mLightBeam2.setPointCount(4);
-    mLightBeam2.setPoint(0, sf::Vector2f(-180.0f, -1200.0f));
-    mLightBeam2.setPoint(1, sf::Vector2f(180.0f, -1200.0f));
-    mLightBeam2.setPoint(2, sf::Vector2f(20.0f, 0.0f));
-    mLightBeam2.setPoint(3, sf::Vector2f(-20.0f, 0.0f));
-    mLightBeam2.setFillColor(sf::Color(255, 255, 200, 0));
+    mLightBeam2 = mLightBeam1;
     mLightBeam2.setPosition(1080.0f, 800.0f);
 
-    if (!mCupTexture.loadFromFile("cup.png")) {
-        std::cout << "[Error] Could not load cup.png!" << std::endl;
-    }
-    else {
+    if (mCupTexture.loadFromFile("cup.png")) {
         mCupSprite.setTexture(mCupTexture);
         mCupSprite.setOrigin(mCupTexture.getSize().x / 2.0f, mCupTexture.getSize().y / 2.0f);
         mCupSprite.setPosition(640.0f, 350.0f);
@@ -106,42 +165,6 @@ Game::Game()
         mCongratsText.getLocalBounds().top + mCongratsText.getLocalBounds().height / 2.0f);
     mCongratsText.setPosition(640.0f, 100.0f);
 
-    mCowProgressBarBg.setSize(sf::Vector2f(200.0f, 20.0f));
-    mCowProgressBarBg.setFillColor(sf::Color(50, 50, 50, 200));
-    mCowProgressBarBg.setOutlineThickness(2.0f);
-    mCowProgressBarBg.setOutlineColor(sf::Color::Black);
-    mCowProgressBarBg.setPosition(1050.0f, 35.0f);
-
-    mCowProgressBar.setSize(sf::Vector2f(0.0f, 20.0f));
-    mCowProgressBar.setFillColor(sf::Color(255, 50, 50));
-    mCowProgressBar.setPosition(1050.0f, 35.0f);
-
-    mCowProgressText.setFont(mFont);
-    mCowProgressText.setCharacterSize(22);
-    mCowProgressText.setFillColor(sf::Color::White);
-    mCowProgressText.setOutlineThickness(1.5f);
-    mCowProgressText.setOutlineColor(sf::Color::Black);
-    mCowProgressText.setPosition(1050.0f, 8.0f);
-    mCowProgressText.setString("COWS HIT:");
-
-    mBossProgressBarBg.setSize(sf::Vector2f(200.0f, 20.0f));
-    mBossProgressBarBg.setFillColor(sf::Color(50, 50, 50, 200));
-    mBossProgressBarBg.setOutlineThickness(2.0f);
-    mBossProgressBarBg.setOutlineColor(sf::Color::Black);
-    mBossProgressBarBg.setPosition(1050.0f, 92.0f);
-
-    mBossProgressBar.setSize(sf::Vector2f(0.0f, 20.0f));
-    mBossProgressBar.setFillColor(sf::Color(255, 150, 0));
-    mBossProgressBar.setPosition(1050.0f, 92.0f);
-
-    mBossProgressText.setFont(mFont);
-    mBossProgressText.setCharacterSize(22);
-    mBossProgressText.setFillColor(sf::Color::White);
-    mBossProgressText.setOutlineThickness(1.5f);
-    mBossProgressText.setOutlineColor(sf::Color::Black);
-    mBossProgressText.setPosition(1050.0f, 65.0f);
-    mBossProgressText.setString("DRONES KILLED:");
-
     mScoreBackground.setSize(sf::Vector2f(200.0f, 45.0f));
     mScoreBackground.setFillColor(sf::Color(35, 45, 56));
     mScoreBackground.setOutlineThickness(3.0f);
@@ -157,27 +180,15 @@ Game::Game()
     mCoinIcon.setFillColor(sf::Color(255, 215, 0));
     mCoinIcon.setPosition(180.0f, 30.0f);
 
-    if (!mBackgroundTexture.loadFromFile("game_bg.png")) {
-        std::cout << "[Error] Could not load game_bg.png!" << std::endl;
-    }
-    else {
+    if (mBackgroundTexture.loadFromFile("game_bg.png")) {
         mBackgroundSprite.setTexture(mBackgroundTexture);
-        float scaleX = 1280.0f / mBackgroundTexture.getSize().x;
-        float scaleY = 720.0f / mBackgroundTexture.getSize().y;
-        mBackgroundSprite.setScale(scaleX, scaleY);
+        mBackgroundSprite.setScale(1280.0f / mBackgroundTexture.getSize().x, 720.0f / mBackgroundTexture.getSize().y);
     }
 
-    if (!mCharacterTexture.loadFromFile("character_sheet.png")) {
-        std::cout << "[Error] Could not load character_sheet.png!" << std::endl;
-    }
-    else {
+    if (mCharacterTexture.loadFromFile("character_sheet.png")) {
         mCharacterSprite.setTexture(mCharacterTexture);
-        mCharacterFrames.clear();
-        mCharacterFrames.push_back(sf::IntRect(16, 0, 171, 600));
-        mCharacterFrames.push_back(sf::IntRect(209, 0, 191, 600));
-        mCharacterFrames.push_back(sf::IntRect(411, 0, 211, 600));
-        mCharacterFrames.push_back(sf::IntRect(627, 0, 191, 600));
-
+        mCharacterFrames = { sf::IntRect(16, 0, 171, 600), sf::IntRect(209, 0, 191, 600),
+                             sf::IntRect(411, 0, 211, 600), sf::IntRect(627, 0, 191, 600) };
         mCharacterSprite.setTextureRect(mCharacterFrames[0]);
         mCharacterSprite.setOrigin(mCharacterFrames[0].width / 2.0f, mCharacterFrames[0].height / 2.0f);
         mCharacterSprite.setPosition(110.0f, 520.0f);
@@ -188,145 +199,71 @@ Game::Game()
     mUpgrades.push_back(UpgradeSet("Abdurahman Set", 300, false, 0.55f, 1.0f));
     mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 1000, false, 0.75f, 0.4f));
 
-    if (!mShopBgTexture.loadFromFile("fon_mag.png")) {
-        std::cout << "[Error] Could not load fon_mag.png!" << std::endl;
-    }
-    else {
+    if (mShopBgTexture.loadFromFile("fon_mag.png")) {
         mShopBgSprite.setTexture(mShopBgTexture);
-        float sX = 1280.0f / mShopBgTexture.getSize().x;
-        float sY = 720.0f / mShopBgTexture.getSize().y;
-        mShopBgSprite.setScale(sX, sY);
+        mShopBgSprite.setScale(1280.0f / mShopBgTexture.getSize().x, 720.0f / mShopBgTexture.getSize().y);
     }
 
-    if (!mBoardTexture.loadFromFile("tablica.png")) {
-        std::cout << "[Error] Could not load tablica.png!" << std::endl;
-    }
-    else {
+    if (mBoardTexture.loadFromFile("tablica.png")) {
         mBoardSprite.setTexture(mBoardTexture);
-        mBoardSprite.setOrigin(static_cast<float>(mBoardTexture.getSize().x) / 2.0f, static_cast<float>(mBoardTexture.getSize().y) / 2.0f);
+        mBoardSprite.setOrigin(mBoardTexture.getSize().x / 2.0f, mBoardTexture.getSize().y / 2.0f);
         mBoardSprite.setPosition(640.0f, 350.0f);
-        mBoardSprite.setScale(0.85f, 0.85f);
+        mBoardSprite.setScale(0.42f, 0.35f); // »—œ–¿¬À≈ÕŒ: ¬ÂÌÛÎË Ô‡‚ËÎ¸Ì˚È ‡ÁÏÂ ‰Îˇ Á‡‰ÌÂ„Ó ÙÓÌ‡
     }
 
-    if (!mInstBgTexture.loadFromFile("instbg.png")) {
-        std::cout << "[Error] Could not load instbg.png!" << std::endl;
-    }
-    else {
+    if (mInstBgTexture.loadFromFile("instbg.png")) {
         mInstBgSprite.setTexture(mInstBgTexture);
-        float scaleX = 1280.0f / mInstBgTexture.getSize().x;
-        float scaleY = 720.0f / mInstBgTexture.getSize().y;
-        mInstBgSprite.setScale(scaleX, scaleY);
+        mInstBgSprite.setScale(1280.0f / mInstBgTexture.getSize().x, 720.0f / mInstBgTexture.getSize().y);
     }
 
-    if (!mInstExitBtnTexture.loadFromFile("exitbutton.png")) {
-        std::cout << "[Error] Could not load exitbutton.png!" << std::endl;
-    }
-    else {
+    if (mInstExitBtnTexture.loadFromFile("exitbutton.png")) {
         mInstExitBtnSprite.setTexture(mInstExitBtnTexture);
         mInstExitBtnSprite.setOrigin(mInstExitBtnTexture.getSize().x / 2.0f, mInstExitBtnTexture.getSize().y / 2.0f);
         mInstExitBtnSprite.setPosition(1200.0f, 60.0f);
-
-        float targetSize = 80.0f;
-        float exitScale = targetSize / mInstExitBtnTexture.getSize().x;
+        float exitScale = 80.0f / mInstExitBtnTexture.getSize().x;
         mInstExitBtnSprite.setScale(exitScale, exitScale);
     }
 
     for (int i = 0; i < 3; ++i) {
-        std::string eFile = "engine" + std::to_string(i + 1) + ".png";
-        std::string tFile = "tire" + std::to_string(i + 1) + ".png";
-
-        if (mPreviewEngineTextures[i].loadFromFile(eFile)) {
+        if (mPreviewEngineTextures[i].loadFromFile("engine" + std::to_string(i + 1) + ".png")) {
             mPreviewEngineSprites[i].setTexture(mPreviewEngineTextures[i]);
-            mPreviewEngineSprites[i].setOrigin(static_cast<float>(mPreviewEngineTextures[i].getSize().x) / 2.0f, static_cast<float>(mPreviewEngineTextures[i].getSize().y) / 2.0f);
+            mPreviewEngineSprites[i].setOrigin(mPreviewEngineTextures[i].getSize().x / 2.0f, mPreviewEngineTextures[i].getSize().y / 2.0f);
         }
-        if (mPreviewTireTextures[i].loadFromFile(tFile)) {
+        if (mPreviewTireTextures[i].loadFromFile("tire" + std::to_string(i + 1) + ".png")) {
             mPreviewTireSprites[i].setTexture(mPreviewTireTextures[i]);
-            mPreviewTireSprites[i].setOrigin(static_cast<float>(mPreviewTireTextures[i].getSize().x) / 2.0f, static_cast<float>(mPreviewTireTextures[i].getSize().y) / 2.0f);
+            mPreviewTireSprites[i].setOrigin(mPreviewTireTextures[i].getSize().x / 2.0f, mPreviewTireTextures[i].getSize().y / 2.0f);
         }
     }
 
-    if (mNewCoinBgTexture.loadFromFile("monetybg2.png")) {
-        mNewCoinBgSprite.setTexture(mNewCoinBgTexture);
-        mNewCoinBgSprite.setPosition(30.0f, 20.0f);
-    }
+    if (mNewCoinBgTexture.loadFromFile("monetybg2.png")) mNewCoinBgSprite.setTexture(mNewCoinBgTexture);
+    mNewCoinBgSprite.setPosition(30.0f, 20.0f);
 
     if (mPriceBgTexture.loadFromFile("pricebg.png")) {
         for (int i = 0; i < 3; ++i) {
             mPriceBgSprites[i].setTexture(mPriceBgTexture);
-            mPriceBgSprites[i].setOrigin(static_cast<float>(mPriceBgTexture.getSize().x) / 2.0f, static_cast<float>(mPriceBgTexture.getSize().y) / 2.0f);
+            mPriceBgSprites[i].setOrigin(mPriceBgTexture.getSize().x / 2.0f, mPriceBgTexture.getSize().y / 2.0f);
         }
     }
 
-    if (mBuyKeyTexture.loadFromFile("buykey.png")) {
-        for (int i = 0; i < 3; ++i) {
-            mBuyKeySprites[i].setTexture(mBuyKeyTexture);
-            mBuyKeySprites[i].setOrigin(static_cast<float>(mBuyKeyTexture.getSize().x) / 2.0f, static_cast<float>(mBuyKeyTexture.getSize().y) / 2.0f);
-        }
-
-        mInstBtnSprite.setTexture(mBuyKeyTexture);
-
-        mVictoryQuitBtnSprite.setTexture(mBuyKeyTexture);
-        mVictoryQuitBtnSprite.setOrigin(mBuyKeyTexture.getSize().x / 2.0f, mBuyKeyTexture.getSize().y / 2.0f);
-        mVictoryQuitBtnSprite.setPosition(460.0f, 620.0f);
-        mVictoryQuitBtnSprite.setScale(1.2f, 1.2f);
-
-        mVictoryContBtnSprite.setTexture(mBuyKeyTexture);
-        mVictoryContBtnSprite.setOrigin(mBuyKeyTexture.getSize().x / 2.0f, mBuyKeyTexture.getSize().y / 2.0f);
-        mVictoryContBtnSprite.setPosition(820.0f, 620.0f);
-        mVictoryContBtnSprite.setScale(1.2f, 1.2f);
+    for (int i = 0; i < 3; ++i) {
+        mBuyKeySprites[i].setTexture(mBuyKeyTexture);
+        mBuyKeySprites[i].setOrigin(mBuyKeyTexture.getSize().x / 2.0f, mBuyKeyTexture.getSize().y / 2.0f);
     }
 
-    mVictoryQuitBtnText.setFont(mFont);
-    mVictoryQuitBtnText.setCharacterSize(38);
-    mVictoryQuitBtnText.setFillColor(sf::Color::White);
-    mVictoryQuitBtnText.setString("Quit");
-    mVictoryQuitBtnText.setOrigin(mVictoryQuitBtnText.getLocalBounds().left + mVictoryQuitBtnText.getLocalBounds().width / 2.0f,
-        mVictoryQuitBtnText.getLocalBounds().top + mVictoryQuitBtnText.getLocalBounds().height / 2.0f);
-    mVictoryQuitBtnText.setPosition(460.0f, 620.0f);
-
-    mVictoryContBtnText.setFont(mFont);
-    mVictoryContBtnText.setCharacterSize(38);
-    mVictoryContBtnText.setFillColor(sf::Color::White);
-    mVictoryContBtnText.setString("Continue");
-    mVictoryContBtnText.setOrigin(mVictoryContBtnText.getLocalBounds().left + mVictoryContBtnText.getLocalBounds().width / 2.0f,
-        mVictoryContBtnText.getLocalBounds().top + mVictoryContBtnText.getLocalBounds().height / 2.0f);
-    mVictoryContBtnText.setPosition(820.0f, 620.0f);
-
-    if (!mMenuBgTexture.loadFromFile("menubg.png")) {
-        std::cout << "[Error] Could not load menubg.png!" << std::endl;
-    }
-    else {
+    if (mMenuBgTexture.loadFromFile("menubg.png")) {
         mMenuBgSprite.setTexture(mMenuBgTexture);
-        float sX = 1280.0f / mMenuBgTexture.getSize().x;
-        float sY = 720.0f / mMenuBgTexture.getSize().y;
-        mMenuBgSprite.setScale(sX, sY);
+        mMenuBgSprite.setScale(1280.0f / mMenuBgTexture.getSize().x, 720.0f / mMenuBgTexture.getSize().y);
     }
 
     mMenuTitleText.setFont(mFont);
+    mMenuTitleText.setCharacterSize(110);
     mMenuTitleText.setStyle(sf::Text::Bold);
     mMenuTitleText.setFillColor(sf::Color(255, 215, 0));
     mMenuTitleText.setOutlineColor(sf::Color::Black);
     mMenuTitleText.setOutlineThickness(4.0f);
     mMenuTitleText.setString("TIRE LAUNCHER");
-
-    mWorkshopBtnSprite.setTexture(mBuyKeyTexture);
-    mWorkshopBtnText.setFont(mFont);
-    mWorkshopBtnText.setFillColor(sf::Color::White);
-    mWorkshopBtnText.setString("Workshop");
-
-    mInstBtnText.setFont(mFont);
-    mInstBtnText.setFillColor(sf::Color::White);
-    mInstBtnText.setString("Instructions");
-
-    mStreetBtnSprite.setTexture(mBuyKeyTexture);
-    mStreetBtnText.setFont(mFont);
-    mStreetBtnText.setFillColor(sf::Color::White);
-    mStreetBtnText.setString("Street");
-
-    mResetBtnSprite.setTexture(mBuyKeyTexture);
-    mResetBtnText.setFont(mFont);
-    mResetBtnText.setFillColor(sf::Color(255, 100, 100));
-    mResetBtnText.setString("RESET");
+    mMenuTitleText.setOrigin(mMenuTitleText.getLocalBounds().width / 2.0f, mMenuTitleText.getLocalBounds().height / 2.0f);
+    mMenuTitleText.setPosition(640.0f, 100.0f); // »—œ–¿¬À≈ÕŒ: ¬˚‡‚ÌˇÎ Á‡„ÓÎÓ‚ÓÍ Ó‚ÌÓ ÔÓ ˆÂÌÚÛ
 
     loadProgress();
     applyUpgrades();
@@ -373,44 +310,24 @@ void Game::applyUpgrades() {
     mRocket.upgrade(enginePwr, tireDrg);
 
     std::string engineFile = "engine" + std::to_string(mCurrentUpgradeLevel + 1) + ".png";
-    if (!mLauncherTexture.loadFromFile(engineFile)) {
-        std::cout << "[Error] Could not load " << engineFile << "!" << std::endl;
-    }
-    else {
+    if (mLauncherTexture.loadFromFile(engineFile)) {
         mLauncherSprite.setTexture(mLauncherTexture, true);
-        mLauncherSprite.setOrigin(static_cast<float>(mLauncherTexture.getSize().x) / 2.0f, static_cast<float>(mLauncherTexture.getSize().y) / 2.0f);
+        mLauncherSprite.setOrigin(mLauncherTexture.getSize().x / 2.0f, mLauncherTexture.getSize().y / 2.0f);
 
-        if (mCurrentUpgradeLevel == 0) {
-            mLauncherSprite.setScale(0.45f, 0.45f);
-            mLauncherSprite.setPosition(210.0f, 600.0f);
-        }
-        else if (mCurrentUpgradeLevel == 1) {
-            mLauncherSprite.setScale(0.29f, 0.29f);
-            mLauncherSprite.setPosition(230.0f, 580.0f);
-        }
-        else if (mCurrentUpgradeLevel == 2) {
-            mLauncherSprite.setScale(0.28f, 0.28f);
-            mLauncherSprite.setPosition(210.0f, 600.0f);
-        }
+        float engScales[] = { 0.45f, 0.29f, 0.28f };
+        sf::Vector2f engPos[] = { {210.0f, 600.0f}, {230.0f, 580.0f}, {210.0f, 600.0f} };
+
+        mLauncherSprite.setScale(engScales[mCurrentUpgradeLevel], engScales[mCurrentUpgradeLevel]);
+        mLauncherSprite.setPosition(engPos[mCurrentUpgradeLevel]);
     }
 
     std::string tireFile = "tire" + std::to_string(mCurrentUpgradeLevel + 1) + ".png";
-    if (!mTireTexture.loadFromFile(tireFile)) {
-        std::cout << "[Error] Could not load " << tireFile << "!" << std::endl;
-    }
-    else {
+    if (mTireTexture.loadFromFile(tireFile)) {
         mTireVisual.setTexture(mTireTexture, true);
-        mTireVisual.setOrigin(static_cast<float>(mTireTexture.getSize().x) / 2.0f, static_cast<float>(mTireTexture.getSize().y) / 2.0f);
+        mTireVisual.setOrigin(mTireTexture.getSize().x / 2.0f, mTireTexture.getSize().y / 2.0f);
 
-        if (mCurrentUpgradeLevel == 0) {
-            mTireVisual.setScale(0.18f, 0.18f);
-        }
-        else if (mCurrentUpgradeLevel == 1) {
-            mTireVisual.setScale(0.07f, 0.07f);
-        }
-        else if (mCurrentUpgradeLevel == 2) {
-            mTireVisual.setScale(0.45f, 0.45f);
-        }
+        float tireScales[] = { 0.18f, 0.07f, 0.45f };
+        mTireVisual.setScale(tireScales[mCurrentUpgradeLevel], tireScales[mCurrentUpgradeLevel]);
     }
 }
 
@@ -502,48 +419,17 @@ void Game::processEvents() {
             }
 
             if (mCurrentState == GameState::MENU) {
-                float menuBtnScale = 1.1f;
-                float menuBtnCenterX = 530.0f;
-
-                float workshopBtnY = 260.0f;
-                float streetBtnY = 360.0f;
-                float instBtnY = 460.0f;
-                float resetBtnY = 560.0f;
-
-                float btnW = static_cast<float>(mBuyKeyTexture.getSize().x) * menuBtnScale;
-                float btnH = static_cast<float>(mBuyKeyTexture.getSize().y) * menuBtnScale;
-
-                sf::FloatRect workshopBounds(menuBtnCenterX, workshopBtnY, btnW, btnH);
-                sf::FloatRect streetBounds(menuBtnCenterX, streetBtnY, btnW, btnH);
-                sf::FloatRect instBounds(menuBtnCenterX, instBtnY, btnW, btnH);
-                sf::FloatRect resetBounds(menuBtnCenterX, resetBtnY, btnW, btnH);
-
-                if (workshopBounds.contains(mousePos.x, mousePos.y)) {
+                if (mWorkshopBtnSprite.getGlobalBounds().contains(mousePos.x, mousePos.y)) {
                     mCurrentState = GameState::SHOP;
                 }
-                else if (streetBounds.contains(mousePos.x, mousePos.y)) {
+                else if (mStreetBtnSprite.getGlobalBounds().contains(mousePos.x, mousePos.y)) {
                     mCurrentState = GameState::PLAY;
                 }
-                else if (instBounds.contains(mousePos.x, mousePos.y)) {
+                else if (mInstBtnSprite.getGlobalBounds().contains(mousePos.x, mousePos.y)) {
                     mCurrentState = GameState::INSTRUCTIONS;
                 }
-                else if (resetBounds.contains(mousePos.x, mousePos.y)) {
-                    mCoins = 0;
-                    mCurrentUpgradeLevel = 0;
-                    mMobsKilled = 0;
-                    mCowsHit = 0;
-                    mIsBossActive = false;
-                    mIsBossWarningActive = false;
-                    mIsBossDefeatedMessageActive = false;
-                    mUpgrades.clear();
-
-                    mUpgrades.push_back(UpgradeSet("Tuc-Tuc Set", 0, true, 0.4125f, 1.5f));
-                    mUpgrades.push_back(UpgradeSet("Abdurahman Set", 300, false, 0.55f, 1.0f));
-                    mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 1000, false, 0.75f, 0.4f));
-
-                    applyUpgrades();
-                    saveProgress();
-                    std::cout << "[Menu] Progress Reset to ZERO!" << std::endl;
+                else if (mResetBtnSprite.getGlobalBounds().contains(mousePos.x, mousePos.y)) {
+                    resetGameProgress();
                 }
             }
             else if (mCurrentState == GameState::SHOP) {
@@ -556,11 +442,7 @@ void Game::processEvents() {
                 for (int i = 0; i < 3; ++i) {
                     float w = 170.0f * 1.15f;
                     float h = 50.0f * 1.15f;
-                    sf::FloatRect btnBounds(
-                        buttonPositions[i].x - w / 2.0f,
-                        buttonPositions[i].y - h / 2.0f,
-                        w, h
-                    );
+                    sf::FloatRect btnBounds(buttonPositions[i].x - w / 2.0f, buttonPositions[i].y - h / 2.0f, w, h);
 
                     if (btnBounds.contains(mousePos.x, mousePos.y)) {
                         if (!mUpgrades[i].getIsUnlocked()) {
@@ -592,8 +474,7 @@ void Game::update(sf::Time deltaTime) {
     if (mIsVictoryScreenActive) {
         mVictoryAnimTimer += dt;
 
-        float animDuration = 1.5f;
-        float t = mVictoryAnimTimer / animDuration;
+        float t = mVictoryAnimTimer / 1.5f;
         if (t > 1.0f) t = 1.0f;
 
         float smoothT = std::sin(t * 3.14159f / 2.0f);
@@ -602,9 +483,9 @@ void Game::update(sf::Time deltaTime) {
         mCupSprite.setPosition(640.0f, 350.0f + yOffset);
         mCongratsText.setPosition(640.0f, 100.0f + yOffset);
         mVictoryQuitBtnSprite.setPosition(460.0f, 620.0f + yOffset);
-        mVictoryQuitBtnText.setPosition(460.0f, 620.0f + yOffset);
+        mVictoryQuitBtnText.setPosition(460.0f, 616.0f + yOffset);
         mVictoryContBtnSprite.setPosition(820.0f, 620.0f + yOffset);
-        mVictoryContBtnText.setPosition(820.0f, 620.0f + yOffset);
+        mVictoryContBtnText.setPosition(820.0f, 616.0f + yOffset);
 
         int beamAlpha = static_cast<int>(60.0f * smoothT);
         mLightBeam1.setFillColor(sf::Color(255, 255, 200, beamAlpha));
@@ -637,28 +518,7 @@ void Game::update(sf::Time deltaTime) {
         mRocket.update(dt);
 
         if (mGameOverTimer <= 0.0f) {
-            mIsGameOverActive = false;
-
-            mCoins = 0;
-            mCurrentUpgradeLevel = 0;
-            mMobsKilled = 0;
-            mCowsHit = 0;
-            mIsBossActive = false;
-            mIsBossWarningActive = false;
-            mIsBossDefeatedMessageActive = false;
-            mUpgrades.clear();
-
-            mUpgrades.push_back(UpgradeSet("Tuc-Tuc Set", 0, true, 0.4125f, 1.5f));
-            mUpgrades.push_back(UpgradeSet("Abdurahman Set", 300, false, 0.55f, 1.0f));
-            mUpgrades.push_back(UpgradeSet("Jugaad Mad Set", 1000, false, 0.75f, 0.4f));
-
-            applyUpgrades();
-            saveProgress();
-
-            mRocket = Rocket();
-            applyUpgrades();
-            mQteManager = QTEManager();
-            mCurrentState = GameState::MENU;
+            resetGameProgress();
         }
         return;
     }
@@ -687,13 +547,6 @@ void Game::update(sf::Time deltaTime) {
         }
     }
 
-    if (mIsBossDefeatedMessageActive) {
-        mBossDefeatedTimer -= deltaTime.asSeconds();
-        if (mBossDefeatedTimer <= 0.0f) {
-            mIsBossDefeatedMessageActive = false;
-        }
-    }
-
     float pct = static_cast<float>(mMobsKilled) / mMobsForBoss;
     if (pct > 1.0f) pct = 1.0f;
     mBossProgressBar.setSize(sf::Vector2f(200.0f * pct, 20.0f));
@@ -716,8 +569,7 @@ void Game::update(sf::Time deltaTime) {
                 }
 
                 mCharacterSprite.setTextureRect(mCharacterFrames[mCharacterCurrentFrame]);
-                mCharacterSprite.setOrigin(mCharacterFrames[mCharacterCurrentFrame].width / 2.0f,
-                    mCharacterFrames[mCharacterCurrentFrame].height / 2.0f);
+                mCharacterSprite.setOrigin(mCharacterFrames[mCharacterCurrentFrame].width / 2.0f, mCharacterFrames[mCharacterCurrentFrame].height / 2.0f);
             }
         }
         else {
@@ -762,12 +614,7 @@ void Game::update(sf::Time deltaTime) {
 
         float shrinkX = tireBox.width * 0.3f;
         float shrinkY = tireBox.height * 0.3f;
-        sf::FloatRect smallTireBox(
-            tireBox.left + shrinkX,
-            tireBox.top + shrinkY,
-            tireBox.width - shrinkX * 2.0f,
-            tireBox.height - shrinkY * 2.0f
-        );
+        sf::FloatRect smallTireBox(tireBox.left + shrinkX, tireBox.top + shrinkY, tireBox.width - shrinkX * 2.0f, tireBox.height - shrinkY * 2.0f);
 
         for (size_t i = 0; i < mTargets.size(); ++i) {
             if (mTargets[i]->isActive() && smallTireBox.intersects(mTargets[i]->getBounds())) {
@@ -839,9 +686,7 @@ void Game::update(sf::Time deltaTime) {
     }
 
     bool currentlyFlying = mRocket.isFlying();
-    if (mWasFlying && !currentlyFlying) {
-        saveProgress();
-    }
+    if (mWasFlying && !currentlyFlying) saveProgress();
     mWasFlying = currentlyFlying;
 }
 
@@ -858,57 +703,15 @@ void Game::render() {
 
     if (mCurrentState == GameState::MENU) {
         mWindow.draw(mMenuBgSprite);
-
-        float titleX = 650.0f; float titleY = 100.0f; int titleSize = 110;
-        float btnCenterX = 530.0f;
-
-        float workshopY = 260.0f;
-        float streetY = 360.0f;
-        float instY = 460.0f;
-        float resetY = 560.0f;
-
-        float btnScale = 1.1f; int textBtnSize = 34;
-        float textOffsetX = 108.0f; float textOffsetY = 25.0f;
-
-        mMenuTitleText.setCharacterSize(titleSize);
-        mMenuTitleText.setOrigin(mMenuTitleText.getLocalBounds().width / 2.0f, mMenuTitleText.getLocalBounds().height / 2.0f);
-        mMenuTitleText.setPosition(titleX, titleY);
         mWindow.draw(mMenuTitleText);
 
-        mWorkshopBtnSprite.setPosition(btnCenterX, workshopY);
-        mWorkshopBtnSprite.setScale(btnScale, btnScale);
         mWindow.draw(mWorkshopBtnSprite);
-
-        mWorkshopBtnText.setCharacterSize(textBtnSize);
-        mWorkshopBtnText.setOrigin(mWorkshopBtnText.getLocalBounds().width / 2.0f, mWorkshopBtnText.getLocalBounds().height / 2.0f);
-        mWorkshopBtnText.setPosition(btnCenterX + textOffsetX, workshopY + textOffsetY);
         mWindow.draw(mWorkshopBtnText);
-
-        mStreetBtnSprite.setPosition(btnCenterX, streetY);
-        mStreetBtnSprite.setScale(btnScale, btnScale);
         mWindow.draw(mStreetBtnSprite);
-
-        mStreetBtnText.setCharacterSize(textBtnSize);
-        mStreetBtnText.setOrigin(mStreetBtnText.getLocalBounds().width / 2.0f, mStreetBtnText.getLocalBounds().height / 2.0f);
-        mStreetBtnText.setPosition(btnCenterX + textOffsetX, streetY + textOffsetY);
         mWindow.draw(mStreetBtnText);
-
-        mInstBtnSprite.setPosition(btnCenterX, instY);
-        mInstBtnSprite.setScale(btnScale, btnScale);
         mWindow.draw(mInstBtnSprite);
-
-        mInstBtnText.setCharacterSize(textBtnSize);
-        mInstBtnText.setOrigin(mInstBtnText.getLocalBounds().width / 2.0f, mInstBtnText.getLocalBounds().height / 2.0f);
-        mInstBtnText.setPosition(btnCenterX + textOffsetX, instY + textOffsetY);
         mWindow.draw(mInstBtnText);
-
-        mResetBtnSprite.setPosition(btnCenterX, resetY);
-        mResetBtnSprite.setScale(btnScale, btnScale);
         mWindow.draw(mResetBtnSprite);
-
-        mResetBtnText.setCharacterSize(textBtnSize);
-        mResetBtnText.setOrigin(mResetBtnText.getLocalBounds().width / 2.0f, mResetBtnText.getLocalBounds().height / 2.0f);
-        mResetBtnText.setPosition(btnCenterX + textOffsetX, resetY + textOffsetY);
         mWindow.draw(mResetBtnText);
     }
     else if (mCurrentState == GameState::INSTRUCTIONS) {
@@ -927,10 +730,6 @@ void Game::render() {
     }
     else if (mCurrentState == GameState::SHOP) {
         mWindow.draw(mShopBgSprite);
-
-        mBoardSprite.setOrigin(static_cast<float>(mBoardTexture.getSize().x) / 2.0f, static_cast<float>(mBoardTexture.getSize().y) / 2.0f);
-        mBoardSprite.setPosition(640.0f, 350.0f);
-        mBoardSprite.setScale(0.42f, 0.35f);
         mWindow.draw(mBoardSprite);
 
         struct AbsoluteShelfConfig {
@@ -992,8 +791,7 @@ void Game::render() {
             else if (mCurrentUpgradeLevel == i) uiText.setString("Equipped");
             else uiText.setString("Equip");
 
-            uiText.setOrigin(uiText.getLocalBounds().left + uiText.getLocalBounds().width / 2.0f,
-                uiText.getLocalBounds().top + uiText.getLocalBounds().height / 2.0f);
+            uiText.setOrigin(uiText.getLocalBounds().left + uiText.getLocalBounds().width / 2.0f, uiText.getLocalBounds().top + uiText.getLocalBounds().height / 2.0f);
             uiText.setPosition(cfg.btnX, cfg.btnY - 1.0f);
             mWindow.draw(uiText);
         }
@@ -1038,9 +836,7 @@ void Game::render() {
         mWindow.draw(mCharacterSprite);
         mWindow.draw(mLauncherSprite);
 
-        for (const auto& target : mTargets) {
-            target->draw(mWindow);
-        }
+        for (const auto& target : mTargets) target->draw(mWindow);
 
         mWindow.draw(mCowProgressBarBg);
         mWindow.draw(mCowProgressBar);
@@ -1075,7 +871,6 @@ void Game::render() {
         }
         else {
             mTireVisual.setPosition(startPos);
-
             if (mQteManager.getState() == QTEState::ANGLE_SELECT) {
                 float currentEngineBonus = mUpgrades[mCurrentUpgradeLevel].getSpeedBonus();
                 float spinSpeed = 800.0f * mQteManager.getFinalPowerMult() * currentEngineBonus;
@@ -1123,22 +918,13 @@ void Game::render() {
         static sf::Texture playCoinTexture;
         static bool isPlayCoinLoaded = false;
         if (!isPlayCoinLoaded) {
-            if (playCoinTexture.loadFromFile("monetybg1.png")) {
-                isPlayCoinLoaded = true;
-            }
+            if (playCoinTexture.loadFromFile("monetybg1.png")) isPlayCoinLoaded = true;
         }
 
         if (isPlayCoinLoaded) {
             sf::Sprite playCoinSprite(playCoinTexture);
-
             float coinBgScale = 0.05f;
-            float coinBgX = 15.0f;
-            float coinBgY = 15.0f;
-
-            float textInBgOffsetX = 0.0f;
-            float textInBgOffsetY = -3.0f;
-
-            playCoinSprite.setPosition(coinBgX, coinBgY);
+            playCoinSprite.setPosition(15.0f, 15.0f);
             playCoinSprite.setScale(coinBgScale, coinBgScale);
             mWindow.draw(playCoinSprite);
 
@@ -1147,14 +933,11 @@ void Game::render() {
             playCoinText.setCharacterSize(22);
             playCoinText.setFillColor(sf::Color(60, 60, 60));
             playCoinText.setString(std::to_string(mCoins));
+            playCoinText.setOrigin(playCoinText.getLocalBounds().left + playCoinText.getLocalBounds().width / 2.0f, playCoinText.getLocalBounds().top + playCoinText.getLocalBounds().height / 2.0f);
 
-            playCoinText.setOrigin(playCoinText.getLocalBounds().left + playCoinText.getLocalBounds().width / 2.0f,
-                playCoinText.getLocalBounds().top + playCoinText.getLocalBounds().height / 2.0f);
-
-            float centerX = coinBgX + (static_cast<float>(playCoinTexture.getSize().x) * coinBgScale) / 2.0f;
-            float centerY = coinBgY + (static_cast<float>(playCoinTexture.getSize().y) * coinBgScale) * 0.72f;
-
-            playCoinText.setPosition(centerX + textInBgOffsetX, centerY + textInBgOffsetY);
+            float centerX = 15.0f + (playCoinTexture.getSize().x * coinBgScale) / 2.0f;
+            float centerY = 15.0f + (playCoinTexture.getSize().y * coinBgScale) * 0.72f;
+            playCoinText.setPosition(centerX, centerY - 3.0f);
             mWindow.draw(playCoinText);
         }
 
@@ -1208,7 +991,6 @@ void Game::saveProgress() {
     if (file.is_open()) {
         file << mCoins << "\n";
         file << mCurrentUpgradeLevel << "\n";
-
         for (int i = 0; i < 3; ++i) {
             file << (mUpgrades[i].getIsUnlocked() ? 1 : 0) << " ";
         }
@@ -1221,13 +1003,10 @@ void Game::loadProgress() {
     if (file.is_open()) {
         file >> mCoins;
         file >> mCurrentUpgradeLevel;
-
         for (int i = 0; i < 3; ++i) {
             int unlocked;
             file >> unlocked;
-            if (unlocked == 1) {
-                mUpgrades[i].unlock();
-            }
+            if (unlocked == 1) mUpgrades[i].unlock();
         }
         file.close();
     }

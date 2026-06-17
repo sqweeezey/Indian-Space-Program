@@ -24,6 +24,12 @@ private:
     void saveProgress();
     void loadProgress();
 
+    // --- НОВЫЕ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (РЕФАКТОРИНГ) ---
+    void initButton(sf::Sprite& sprite, sf::Text& text, const std::string& str, float posX, float posY, float scale = 1.1f, int fontSize = 34);
+    void initProgressBar(sf::RectangleShape& bg, sf::RectangleShape& bar, sf::Text& text, const std::string& str, sf::Color color, float posY);
+    void resetGameProgress();
+    // ----------------------------------------------------
+
     sf::RenderWindow mWindow;
     GameState mCurrentState;
 
@@ -120,20 +126,15 @@ private:
     sf::RectangleShape mRedFlashRect;
     sf::Text mWarningText;
 
-    bool mIsBossDefeatedMessageActive;
-    float mBossDefeatedTimer;
-    sf::Text mDefeatedText;
-
     bool mIsGameOverActive;
     float mGameOverTimer;
     sf::Text mGameOverText;
 
-    // --- ПЕРЕМЕННЫЕ ДЛЯ ЭКРАНА ПОБЕДЫ И АНИМАЦИИ ---
     bool mIsVictoryScreenActive;
-    float mVictoryAnimTimer; // Таймер анимации выезда
+    float mVictoryAnimTimer;
 
-    sf::ConvexShape mLightBeam1; // Левый прожектор
-    sf::ConvexShape mLightBeam2; // Правый прожектор
+    sf::ConvexShape mLightBeam1;
+    sf::ConvexShape mLightBeam2;
 
     sf::Texture mCupTexture;
     sf::Sprite  mCupSprite;
@@ -142,5 +143,4 @@ private:
     sf::Text    mVictoryQuitBtnText;
     sf::Sprite  mVictoryContBtnSprite;
     sf::Text    mVictoryContBtnText;
-    // -----------------------------------------------
 };
