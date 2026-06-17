@@ -4,7 +4,8 @@
 #include <vector>
 #include <cstdlib>
 
-enum class HitResult { KILLED, DAMAGED, IGNORED };
+// --- ДОБАВИЛ SHIELDED ДЛЯ ОТСКОКА ОТ ЩИТА ---
+enum class HitResult { KILLED, DAMAGED, IGNORED, SHIELDED };
 
 class GameObject {
 public:
@@ -33,6 +34,9 @@ public:
         setActive(false);
         return HitResult::KILLED;
     }
+
+    // --- НОВЫЙ МЕТОД ДЛЯ ЛЕЧЕНИЯ ---
+    virtual void heal(float amount) {}
 
     virtual bool isBoss() const { return false; }
     virtual bool isDrone() const { return false; }
@@ -76,7 +80,11 @@ public:
         else mSprite.setScale(0.45f, 0.45f);
     }
 
-    void draw(sf::RenderWindow& window) override { if (active) window.draw(mSprite); }
+    void draw(sf::RenderWindow& window) override {
+        if (active) {
+            window.draw(mSprite);
+        }
+    }
     sf::FloatRect getBounds() const override { return mSprite.getGlobalBounds(); }
 
 private:
@@ -181,8 +189,8 @@ public:
         speedY = 150.0f;
         speedX = -100.0f;
         mTextureChangedInHover = false;
+        mHealFlashTimer = 0.0f;
 
-        // Загружаем обе текстуры заранее
         if (mTexture1.loadFromFile("boss1.png")) {
             int h = mTexture1.getSize().y;
             frames = {
@@ -214,28 +222,32 @@ public:
 
     bool isBoss() const override { return true; }
 
-    // --- ФУНКЦИЯ ПРОВЕРКИ ЩИТА ДЛЯ КЛАССА GAME ---
     bool isShieldActive() const {
         return (mState == BossState::HOVERING && mTextureChangedInHover);
     }
 
+    // --- ЛОГИКА ОТХИЛА БОССА ---
+    void heal(float amount) override {
+        if (!active) return;
+        mHp += amount;
+        if (mHp > mMaxHp) {
+            mHp = mMaxHp; // Не лечим выше максимального здоровья
+        }
+        mHealFlashTimer = 0.5f; // Таймер зеленой вспышки (0.5 сек)
+    }
+
     HitResult takeDamage(float damage) override {
-        // Если у босса сработала задержка (он уже мигает от прошлого попадания), игнорируем
-        if (mFlashTimer > 0.0f) {
+        // Если босс мигает от урона ИЛИ от лечения - он неуязвим
+        if (mFlashTimer > 0.0f || mHealFlashTimer > 0.0f) {
             return HitResult::IGNORED;
         }
 
-        // --- ПРОВЕРКА НА ДВЕ СЕКУНДЫ ЩИТА ---
-        if (mState == BossState::HOVERING && mTextureChangedInHover) {
-            // Если горит вторая текстура, ХП НЕ отнимаются и КРАСНЫМ он НЕ становится. 
-            // Сразу возвращаем DAMAGED, чтобы ракета в Game.cpp просто взорвалась
-            return HitResult::DAMAGED;
+        // --- ПРОВЕРКА ЩИТА ---
+        if (isShieldActive()) {
+            return HitResult::SHIELDED; // Теперь возвращает SHIELDED для отскока
         }
 
-        // Включаем мигание красным цветом ТОЛЬКО если щит не активен!
         mFlashTimer = 0.4f;
-
-        // Если щита нет — отнимаем здоровье как обычно
         mHp -= damage;
 
         if (mHp <= mMaxHp * 0.5f && !mIsEnraged) {
@@ -256,7 +268,6 @@ public:
         float dt = deltaTime.asSeconds();
         mStateTimer -= dt;
 
-        // --- ЛОГИКА СОСТОЯНИЙ И ПЕРЕКЛЮЧЕНИЯ ТЕКСТУР ---
         if (mState == BossState::MOVING) {
             position.y += speedY * dt;
             position.x += speedX * dt;
@@ -266,7 +277,7 @@ public:
 
             if (mStateTimer <= 0.0f) {
                 mState = BossState::HOVERING;
-                mStateTimer = mIsEnraged ? 2.0f : 4.0f; // Стоит в 2 раза дольше (4 секунды)
+                mStateTimer = mIsEnraged ? 2.0f : 4.0f;
                 mTextureChangedInHover = false;
 
                 mSprite.setTexture(mTexture1);
@@ -276,11 +287,9 @@ public:
         else if (mState == BossState::HOVERING) {
             float halfTime = mIsEnraged ? 1.0f : 2.0f;
 
-            // Переключаем на boss2.png ровно один раз по прошествии половины времени (последние 2 секунды)
             if (mStateTimer <= halfTime && !mTextureChangedInHover) {
                 mSprite.setTexture(mTexture2);
 
-                // Аккуратно сбрасываем прямоугольник под полный размер boss2.png без флага true
                 sf::Vector2u size = mTexture2.getSize();
                 mSprite.setTextureRect(sf::IntRect(0, 0, size.x, size.y));
 
@@ -320,7 +329,6 @@ public:
             }
         }
 
-        // --- АНИМАЦИЯ КАДРОВ ---
         if (mState != BossState::HOVERING || !mTextureChangedInHover) {
             mElapsedTime += dt;
             float currentAnimSpeed = mIsEnraged ? 0.08f : 0.15f;
@@ -333,32 +341,32 @@ public:
             }
         }
         else {
-            // Если включен щит boss2.png, центрируем его по реальным габаритам картинки
             sf::Vector2u size = mTexture2.getSize();
             mSprite.setOrigin(size.x / 2.0f, size.y / 2.0f);
         }
 
-        // Эффект получения урона (подсветка красным цветом)
+        // --- ЦВЕТА И ЭФФЕКТЫ ---
         if (mFlashTimer > 0.0f) {
             mFlashTimer -= dt;
-            mSprite.setColor(sf::Color(255, 100, 100));
+            mSprite.setColor(sf::Color(255, 100, 100)); // Красная вспышка урона
+        }
+        else if (mHealFlashTimer > 0.0f) {
+            mHealFlashTimer -= dt;
+            mSprite.setColor(sf::Color(100, 255, 100)); // Зеленая вспышка отхила
         }
         else {
             if (mIsEnraged) mSprite.setColor(sf::Color(255, 200, 200));
             else mSprite.setColor(sf::Color::White);
         }
 
-        // --- ТУТ НАСТРАИВАЕМ РАЗМЕР (МАСШТАБ) ДЛЯ КАЖДОГО БОССА ---
-        float scaleX = 0.30f; // Это размер по умолчанию для первой формы (0.30f)
+        float scaleX = 0.30f;
         float scaleY = 0.30f;
 
-        // Если босс стоит и включилась вторая текстура щита (boss2)
         if (mState == BossState::HOVERING && mTextureChangedInHover) {
-            scaleX = 0.40f; // Сделайте это число больше/меньше, чтобы изменить масштаб щита
+            scaleX = 0.40f;
             scaleY = 0.40f;
         }
 
-        // Поворот модельки влево/вправо с учетом масштаба
         if (speedX < 0.0f) {
             mSprite.setScale(-scaleX, scaleY);
         }
@@ -368,8 +376,8 @@ public:
 
         mSprite.setPosition(position);
 
-        mHpBg.setPosition(position.x, position.y - 80.0f);
-        mHpBar.setPosition(position.x, position.y - 80.0f);
+        mHpBg.setPosition(position.x, position.y - 130.0f);
+        mHpBar.setPosition(position.x, position.y - 130.0f);
 
         float hpPercent = mHp / mMaxHp;
         if (hpPercent < 0.0f) hpPercent = 0.0f;
@@ -401,6 +409,7 @@ private:
     float mMaxHp;
     float mHp;
     float mFlashTimer = 0.0f;
+    float mHealFlashTimer = 0.0f; // Таймер зеленого свечения
     bool mIsEnraged;
 
     BossState mState;

@@ -99,9 +99,14 @@ private:
     sf::RectangleShape mBossProgressBar;
     sf::Text mBossProgressText;
 
+    int mCowsHit;
+    int mCowsForGameOver;
+    sf::RectangleShape mCowProgressBarBg;
+    sf::RectangleShape mCowProgressBar;
+    sf::Text mCowProgressText;
+
     float mHitSlowdownTimer;
 
-    // --- НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ТАБЛИЧЕК И МИГАНИЯ ---
     bool mIsBossWarningActive;
     float mBossWarningTimer;
     sf::RectangleShape mRedFlashRect;
@@ -110,4 +115,10 @@ private:
     bool mIsBossDefeatedMessageActive;
     float mBossDefeatedTimer;
     sf::Text mDefeatedText;
+
+    // --- НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ КИНЕМАТОГРАФИЧНОГО GAME OVER ---
+    bool mIsGameOverActive;
+    float mGameOverTimer;
+    sf::Text mGameOverText;
+    // ---------------------------------------------------------
 };
